@@ -1,54 +1,50 @@
 # Time Log
 
-> Track your time honestly. We use this to calibrate assessment difficulty, not to police hours. Round to the nearest 15 minutes.
-
-**Total Hours:** <!-- Sum when complete -->
+**Total Hours:** 2.75
 
 ---
 
 ## Phase 1: Requirements Engineering
 
-| Date | Start | End | Hours | Activity |
-|---|---|---|---|---|
-| | | | | Reading challenge docs and domain primer |
-| | | | | Researching technology options |
-| | | | | Writing requirements document |
-| | | | | Writing architecture document |
-| | | | | Revisions after feedback |
-| **Subtotal** | | | **0** | |
+| Date         | Start | End   | Hours    | Activity                                 |
+| ------------ | ----- | ----- | -------- | ---------------------------------------- |
+| 2026-03-01   | 09:00 | 09:15 | 0.25     | Reading challenge docs and domain primer |
+| 2026-03-01   | 09:15 | 09:45 | 0.50     | Researching technology options           |
+| 2026-03-01   | 09:45 | 11:15 | 1.50     | Writing requirements document            |
+| 2026-03-01   | 11:15 | 11:30 | 0.25     | Writing architecture document            |
+| 2026-03-01   | 11:30 | 11:45 | 0.25     | Revisions after feedback                 |
+| **Subtotal** |       |       | **2.75** |                                          |
 
 ---
 
 ## Phase 2: Implementation
 
-| Date | Start | End | Hours | Activity |
-|---|---|---|---|---|
-| | | | | Project setup and scaffolding |
-| | | | | |
-| | | | | |
-| | | | | |
-| | | | | |
-| | | | | |
-| | | | | |
-| | | | | |
-| | | | | |
-| | | | | |
-| **Subtotal** | | | **0** | |
+| Date         | Start | End | Hours | Activity                      |
+| ------------ | ----- | --- | ----- | ----------------------------- |
+|              |       |     |       | Project setup and scaffolding |
+|              |       |     |       |                               |
+|              |       |     |       |                               |
+|              |       |     |       |                               |
+|              |       |     |       |                               |
+|              |       |     |       |                               |
+|              |       |     |       |                               |
+|              |       |     |       |                               |
+|              |       |     |       |                               |
+|              |       |     |       |                               |
+| **Subtotal** |       |     | **0** |                               |
 
 ---
 
 ## Summary
 
-| Phase | Hours |
-|---|---|
-| Phase 1: Requirements | |
-| Phase 2: Implementation | |
-| **Total** | |
+| Phase                   | Hours |
+| ----------------------- | ----- |
+| Phase 1: Requirements   | 2.75  |
+| Phase 2: Implementation | 0     |
+| **Total**               | 2.75  |
 
 ---
 
 ## Notes
 
-<!-- Any context about your time tracking.
-     Were there interruptions? Did you spread it across multiple days?
-     Any time spent on setup/tooling that felt like overhead? -->
+Phase 1 finished in one session on 01/03/26. claude and codex helped with the requirements and architecture writing down a lot, most time went into stack choices & iterating the requirements doc. architecture doc fell into place fast since the requirement decisions were already locked. times are rough, rounded to the nearest 15 minutes.
