@@ -1,0 +1,242 @@
+// ──────────────────────────────────────────────
+// Prisma Schema — RadVault PACS
+// Full data model from REQUIREMENTS.md §3
+// ──────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums ────────────────────────────────────
+
+enum UserRole {
+  Admin
+  Radiologist
+  Technologist
+  ReferringPhysician
+}
+
+enum WorklistStatus {
+  Scheduled
+  InProgress
+  Preliminary
+  Final
+  Amended
+}
+
+enum WorklistPriority {
+  Stat
+  Urgent
+  Routine
+}
+
+enum ReportStatus {
+  Draft
+  Preliminary
+  Final
+  Amended
+  Addended
+}
+
+// ── Models ───────────────────────────────────
+
+model Patient {
+  id               String   @id @default(uuid()) @db.Uuid
+  patientId        String   @unique @map("patient_id")
+  patientName      String   @map("patient_name")
+  patientBirthDate DateTime? @map("patient_birth_date") @db.Date
+  patientSex       String?  @map("patient_sex")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  studies Study[]
+
+  @@index([patientId])
+  @@map("patients")
+}
+
+model Study {
+  id                     String   @id @default(uuid()) @db.Uuid
+  patientId              String   @map("patient_id") @db.Uuid
+  studyInstanceUid       String   @unique @map("study_instance_uid")
+  accessionNumber        String?  @map("accession_number")
+  studyDescription       String?  @map("study_description")
+  studyDate              DateTime? @map("study_date") @db.Date
+  studyTime              String?  @map("study_time")
+  modalitiesInStudy      String?  @map("modalities_in_study")
+  referringPhysicianName String?  @map("referring_physician_name")
+  institutionName        String?  @map("institution_name")
+  numberOfSeries         Int      @default(0) @map("number_of_series")
+  numberOfInstances      Int      @default(0) @map("number_of_instances")
+  orthancStudyId         String?  @map("orthanc_study_id")
+  thumbnailPath          String?  @map("thumbnail_path")
+  dicomTags              Json?    @map("dicom_tags")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  patient      Patient        @relation(fields: [patientId], references: [id])
+  series       Series[]
+  worklistItem WorklistItem?
+  reports      Report[]
+
+  @@index([patientId])
+  @@index([studyDate])
+  @@index([modalitiesInStudy])
+  @@index([referringPhysicianName])
+  @@index([accessionNumber])
+  @@map("studies")
+}
+
+model Series {
+  id                 String   @id @default(uuid()) @db.Uuid
+  studyId            String   @map("study_id") @db.Uuid
+  seriesInstanceUid  String   @unique @map("series_instance_uid")
+  seriesDescription  String?  @map("series_description")
+  modality           String?  @map("modality")
+  seriesNumber       Int?     @map("series_number")
+  numberOfInstances  Int      @default(0) @map("number_of_instances")
+  orthancSeriesId    String?  @map("orthanc_series_id")
+  dicomTags          Json?    @map("dicom_tags")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  study     Study      @relation(fields: [studyId], references: [id])
+  instances Instance[]
+
+  @@index([studyId])
+  @@index([modality])
+  @@map("series")
+}
+
+model Instance {
+  id               String   @id @default(uuid()) @db.Uuid
+  seriesId         String   @map("series_id") @db.Uuid
+  sopInstanceUid   String   @unique @map("sop_instance_uid")
+  sopClassUid      String?  @map("sop_class_uid")
+  instanceNumber   Int?     @map("instance_number")
+  orthancInstanceId String? @map("orthanc_instance_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  series Series @relation(fields: [seriesId], references: [id])
+
+  @@map("instances")
+}
+
+model WorklistItem {
+  id          String          @id @default(uuid()) @db.Uuid
+  studyId     String          @unique @map("study_id") @db.Uuid
+  assignedTo  String?         @map("assigned_to") @db.Uuid
+  status      WorklistStatus  @default(Scheduled)
+  priority    WorklistPriority @default(Routine)
+  scheduledAt DateTime?       @map("scheduled_at")
+  startedAt   DateTime?       @map("started_at")
+  completedAt DateTime?       @map("completed_at")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  study      Study @relation(fields: [studyId], references: [id])
+  assignedUser User? @relation(fields: [assignedTo], references: [id])
+
+  @@index([status])
+  @@index([assignedTo])
+  @@map("worklist_items")
+}
+
+model Report {
+  id         String       @id @default(uuid()) @db.Uuid
+  studyId    String       @map("study_id") @db.Uuid
+  authorId   String       @map("author_id") @db.Uuid
+  status     ReportStatus @default(Draft)
+  indication String?      @db.Text
+  technique  String?      @db.Text
+  comparison String?      @db.Text
+  findings   String?      @db.Text
+  impression String?      @db.Text
+  signedBy   String?      @map("signed_by") @db.Uuid
+  signedAt   DateTime?    @map("signed_at")
+  version    Int          @default(1)
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+
+  study    Study          @relation(fields: [studyId], references: [id])
+  author   User           @relation("ReportAuthor", fields: [authorId], references: [id])
+  signer   User?          @relation("ReportSigner", fields: [signedBy], references: [id])
+  versions ReportVersion[]
+
+  @@map("reports")
+}
+
+model ReportVersion {
+  id              String   @id @default(uuid()) @db.Uuid
+  reportId        String   @map("report_id") @db.Uuid
+  versionNumber   Int      @map("version_number")
+  indication      String?  @db.Text
+  technique       String?  @db.Text
+  comparison      String?  @db.Text
+  findings        String?  @db.Text
+  impression      String?  @db.Text
+  authorId        String   @map("author_id") @db.Uuid
+  statusAtVersion String   @map("status_at_version")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  report Report @relation(fields: [reportId], references: [id])
+  author User   @relation(fields: [authorId], references: [id])
+
+  @@map("report_versions")
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  fullName     String    @map("full_name")
+  role         UserRole  @default(Radiologist)
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  authoredReports Report[]       @relation("ReportAuthor")
+  signedReports   Report[]       @relation("ReportSigner")
+  worklistItems   WorklistItem[]
+  refreshTokens   RefreshToken[]
+  auditLogs       AuditLog[]
+  reportVersions  ReportVersion[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  tokenHash String   @unique @map("token_hash")
+  familyId  String   @map("family_id")
+  isRevoked Boolean  @default(false) @map("is_revoked")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("refresh_tokens")
+}
+
+model AuditLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String?  @map("user_id") @db.Uuid
+  action       String
+  resourceType String?  @map("resource_type")
+  resourceId   String?  @map("resource_id") @db.Uuid
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent")
+  details      Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("audit_logs")
+}
