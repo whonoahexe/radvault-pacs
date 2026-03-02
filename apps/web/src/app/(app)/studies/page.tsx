@@ -43,6 +43,7 @@ export default function StudiesPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [modality, setModality] = useState('');
+  const [sortBy, setSortBy] = useState<'date_desc' | 'date_asc' | 'name_asc'>('date_desc');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -56,7 +57,7 @@ export default function StudiesPage() {
   }, [dateFrom, dateTo]);
 
   const studiesQuery = useQuery({
-    queryKey: ['studies', { patientName, studyDate, modality, page, limit }],
+    queryKey: ['studies', { patientName, studyDate, modality, page, limit, sortBy }],
     queryFn: async () => {
       const datasets = await api.studies.query({
         PatientName: patientName || undefined,
@@ -66,7 +67,23 @@ export default function StudiesPage() {
         limit,
       });
 
-      return datasets.map((dataset) => api.dicom.toStudy(dataset));
+      const mapped = datasets.map((dataset) => api.dicom.toStudy(dataset));
+
+      if (sortBy === 'date_asc') {
+        mapped.sort((a, b) => (a.studyDate ?? '').localeCompare(b.studyDate ?? ''));
+      } else if (sortBy === 'name_asc') {
+        const getName = (s: DicomStudy) => {
+          const tag = s.dicomTags?.['00100010'] as
+            | { Value?: Array<{ Alphabetic?: string } | string> }
+            | undefined;
+          const first = tag?.Value?.[0];
+          return (typeof first === 'string' ? first : first?.Alphabetic ?? '') .toLowerCase();
+        };
+        mapped.sort((a, b) => getName(a).localeCompare(getName(b)));
+      }
+      // date_desc is the default API order, no re-sort needed
+
+      return mapped;
     },
   });
 
@@ -127,7 +144,7 @@ export default function StudiesPage() {
         ) : null}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-6">
         <Input
           placeholder="Patient name"
           value={patientName}
@@ -164,6 +181,17 @@ export default function StudiesPage() {
               {item || 'All modalities'}
             </SelectItem>
           ))}
+        </Select>
+        <Select
+          value={sortBy}
+          onValueChange={(value) => {
+            setSortBy(value as 'date_desc' | 'date_asc' | 'name_asc');
+            setPage(1);
+          }}
+        >
+          <SelectItem value="date_desc">Date (newest)</SelectItem>
+          <SelectItem value="date_asc">Date (oldest)</SelectItem>
+          <SelectItem value="name_asc">Patient (A-Z)</SelectItem>
         </Select>
         <Select
           value={String(limit)}

@@ -121,7 +121,23 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
+function resolveApiBaseUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (configured) {
+    return configured;
+  }
+
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:3000';
+    }
+  }
+
+  return '';
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 function toAbsoluteUrl(path: string): string {
   if (path.startsWith('http://') || path.startsWith('https://')) {

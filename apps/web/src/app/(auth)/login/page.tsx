@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ApiError } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 
 export default function LoginPage() {
@@ -24,10 +25,16 @@ export default function LoginPage() {
           setError(null);
 
           try {
-            await login(email, password);
+            await login(email.trim(), password);
             router.replace('/studies');
-          } catch {
-            setError('Unable to sign in. Please check your credentials and try again.');
+          } catch (error) {
+            if (error instanceof ApiError) {
+              setError(error.message);
+            } else if (error instanceof Error && error.message) {
+              setError(error.message);
+            } else {
+              setError('Unable to sign in. Please check your credentials and try again.');
+            }
           } finally {
             setSubmitting(false);
           }

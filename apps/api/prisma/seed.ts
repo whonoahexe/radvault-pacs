@@ -502,6 +502,136 @@ async function seedDicomStudies(seedDataDir: string): Promise<{
   return { ctStudyUid, mrStudyUid, xrStudyUid };
 }
 
+async function seedSyntheticPatients(): Promise<void> {
+  const syntheticData = [
+    {
+      patient: {
+        patientId: 'PAT-SYN-004',
+        patientName: 'GARCIA^MARIA',
+        patientBirthDate: new Date(Date.UTC(1978, 6, 22)),
+        patientSex: 'F',
+      },
+      study: {
+        studyInstanceUid: '1.2.840.113619.2.55.3.9.20260215.100004',
+        accessionNumber: 'ACC-20260215-004',
+        studyDescription: 'US ABDOMEN COMPLETE',
+        studyDate: new Date(Date.UTC(2026, 1, 15)),
+        studyTime: '143000',
+        modalitiesInStudy: 'US',
+        referringPhysicianName: 'Dr. Marcus Reid',
+        institutionName: 'RadVault Medical Center',
+        numberOfSeries: 2,
+        numberOfInstances: 24,
+      },
+      series: {
+        seriesInstanceUid: '1.2.840.113619.2.55.3.9.20260215.100004.1',
+        seriesDescription: 'ABDOMEN SAGITTAL',
+        modality: 'US',
+        seriesNumber: 1,
+        numberOfInstances: 24,
+      },
+      instance: {
+        sopInstanceUid: '1.2.840.113619.2.55.3.9.20260215.100004.1.1',
+        sopClassUid: '1.2.840.10008.5.1.4.1.1.6.1',
+        instanceNumber: 1,
+      },
+      worklist: {
+        status: WorklistStatus.Preliminary,
+        priority: WorklistPriority.Urgent,
+      },
+    },
+    {
+      patient: {
+        patientId: 'PAT-SYN-005',
+        patientName: 'JOHNSON^ROBERT^W',
+        patientBirthDate: new Date(Date.UTC(1955, 10, 3)),
+        patientSex: 'M',
+      },
+      study: {
+        studyInstanceUid: '1.2.840.113619.2.55.3.9.20260228.100005',
+        accessionNumber: 'ACC-20260228-005',
+        studyDescription: 'CT HEAD WITHOUT CONTRAST',
+        studyDate: new Date(Date.UTC(2026, 1, 28)),
+        studyTime: '091500',
+        modalitiesInStudy: 'CT',
+        referringPhysicianName: 'Dr. Marcus Reid',
+        institutionName: 'RadVault Medical Center',
+        numberOfSeries: 1,
+        numberOfInstances: 36,
+      },
+      series: {
+        seriesInstanceUid: '1.2.840.113619.2.55.3.9.20260228.100005.1',
+        seriesDescription: 'AXIAL 5MM',
+        modality: 'CT',
+        seriesNumber: 1,
+        numberOfInstances: 36,
+      },
+      instance: {
+        sopInstanceUid: '1.2.840.113619.2.55.3.9.20260228.100005.1.1',
+        sopClassUid: '1.2.840.10008.5.1.4.1.1.2',
+        instanceNumber: 1,
+      },
+      worklist: {
+        status: WorklistStatus.Scheduled,
+        priority: WorklistPriority.Stat,
+      },
+    },
+  ];
+
+  const radiologist = await prisma.user.findFirst({
+    where: { role: UserRole.Radiologist },
+    select: { id: true },
+  });
+
+  for (const entry of syntheticData) {
+    const patient = await prisma.patient.upsert({
+      where: { patientId: entry.patient.patientId },
+      update: entry.patient,
+      create: entry.patient,
+    });
+
+    const study = await prisma.study.upsert({
+      where: { studyInstanceUid: entry.study.studyInstanceUid },
+      update: { ...entry.study, patientId: patient.id },
+      create: { ...entry.study, patientId: patient.id },
+    });
+
+    const series = await prisma.series.upsert({
+      where: { seriesInstanceUid: entry.series.seriesInstanceUid },
+      update: { ...entry.series, studyId: study.id },
+      create: { ...entry.series, studyId: study.id },
+    });
+
+    await prisma.instance.upsert({
+      where: { sopInstanceUid: entry.instance.sopInstanceUid },
+      update: { ...entry.instance, seriesId: series.id },
+      create: { ...entry.instance, seriesId: series.id },
+    });
+
+    const assignedTo =
+      entry.worklist.status === WorklistStatus.Preliminary && radiologist
+        ? radiologist.id
+        : null;
+
+    await prisma.worklistItem.upsert({
+      where: { studyId: study.id },
+      update: {
+        status: entry.worklist.status,
+        priority: entry.worklist.priority,
+        assignedTo,
+      },
+      create: {
+        studyId: study.id,
+        status: entry.worklist.status,
+        priority: entry.worklist.priority,
+        assignedTo,
+        scheduledAt: new Date(),
+        startedAt: assignedTo ? new Date() : null,
+      },
+    });
+  }
+}
+
 async function seedWorklistAndReport(args: {
   ctStudyUid: string;
   mrStudyUid: string;
@@ -664,6 +794,9 @@ async function main() {
     usersByEmail,
   });
   console.log('Worklist states and report seeded');
+
+  await seedSyntheticPatients();
+  console.log('Synthetic patients seeded (2 additional)');
 }
 
 main()

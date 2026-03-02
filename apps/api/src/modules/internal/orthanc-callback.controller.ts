@@ -90,7 +90,7 @@ export class OrthancCallbackController {
   @ApiOperation({
     summary: 'Orthanc authorization plugin callback',
     description:
-      'Called by Orthanc on every WADO-RS request. Validates JWT and returns grant decision. Currently returns granted: true unconditionally (stub).',
+      'Called by Orthanc on every WADO-RS request. Validates JWT, enforces role-based access, logs audit events, and returns grant decision.',
   })
   validate(
     @Body() body: OrthancTokenValidateRequest,

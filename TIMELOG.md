@@ -19,17 +19,17 @@
 
 ## Phase 2: Implementation
 
-| Date         | Start | End | Hours | Activity                      |
-| ------------ | ----- | --- | ----- | ----------------------------- |
-| 2026-03-01   | 12:00 | 13:30 | 1.50 | Step 1: monorepo scaffold, module shells, base configs |
-| 2026-03-01   | 13:30 | 16:30 | 3.00 | Step 2: backend core (auth, DICOM endpoints, worklist, reports, audit) |
-| 2026-03-01   | 16:45 | 19:15 | 2.50 | Step 3: frontend pages/components and workflow wiring |
-| 2026-03-01   | 19:30 | 20:30 | 1.00 | Step 4: worker jobs and processing pipeline |
-| 2026-03-02   | 09:00 | 10:30 | 1.50 | Step 5: seed data flow, startup reliability, demo account verification |
-| 2026-03-02   | 10:30 | 11:30 | 1.00 | Step 6: IaC validation and CI/CD cleanup |
-| 2026-03-02   | 11:30 | 12:30 | 1.00 | Step 7: unit/integration tests and E2E validation script pass |
-| 2026-03-03   | 09:00 | 09:30 | 0.50 | Step 8: final docs and submission prep |
-| **Subtotal** |       |       | **12.50** |                           |
+| Date         | Start | End   | Hours     | Activity                                                               |
+| ------------ | ----- | ----- | --------- | ---------------------------------------------------------------------- |
+| 2026-03-01   | 12:00 | 13:30 | 1.50      | Step 1: monorepo scaffold, module shells, base configs                 |
+| 2026-03-01   | 13:30 | 16:30 | 3.00      | Step 2: backend core (auth, DICOM endpoints, worklist, reports, audit) |
+| 2026-03-01   | 16:45 | 19:15 | 2.50      | Step 3: frontend pages/components and workflow wiring                  |
+| 2026-03-01   | 19:30 | 20:30 | 1.00      | Step 4: worker jobs and processing pipeline                            |
+| 2026-03-02   | 09:00 | 10:30 | 1.50      | Step 5: seed data flow, startup reliability, demo account verification |
+| 2026-03-02   | 10:30 | 11:30 | 1.00      | Step 6: IaC validation and CI/CD cleanup                               |
+| 2026-03-02   | 11:30 | 12:30 | 1.00      | Step 7: unit/integration tests and E2E validation script pass          |
+| 2026-03-03   | 09:00 | 09:30 | 0.50      | Step 8: final docs and submission prep                                 |
+| **Subtotal** |       |       | **12.50** |                                                                        |
 
 ---
 

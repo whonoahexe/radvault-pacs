@@ -17,6 +17,7 @@ import type { AuthenticatedUser } from '../auth/types/auth-user.type';
 
 interface DicomQueryParams {
   patientName?: string;
+  patientId?: string;
   studyDate?: string;
   modalitiesInStudy?: string;
   accessionNumber?: string;
@@ -125,6 +126,7 @@ export class DicomService implements OnModuleDestroy {
 
   private dicomStudyFromRow(row: {
     patientName: string;
+    patientDicomId: string;
     studyInstanceUid: string;
     studyDate: Date | null;
     modalitiesInStudy: string | null;
@@ -137,6 +139,7 @@ export class DicomService implements OnModuleDestroy {
   }): Record<string, unknown> {
     return {
       '00100010': { vr: 'PN', Value: [{ Alphabetic: row.patientName }] },
+      '00100020': { vr: 'LO', Value: [row.patientDicomId] },
       '0020000D': { vr: 'UI', Value: [row.studyInstanceUid] },
       '00080020': {
         vr: 'DA',
@@ -463,13 +466,20 @@ export class DicomService implements OnModuleDestroy {
 
     const where: Prisma.StudyWhereInput = {};
 
-    if (query.patientName) {
-      where.patient = {
-        patientName: {
+    if (query.patientName || query.patientId) {
+      where.patient = {};
+      if (query.patientName) {
+        where.patient.patientName = {
           contains: query.patientName,
           mode: 'insensitive',
-        },
-      };
+        };
+      }
+      if (query.patientId) {
+        where.patient.patientId = {
+          contains: query.patientId,
+          mode: 'insensitive',
+        };
+      }
     }
 
     if (query.studyDate) {
@@ -499,6 +509,7 @@ export class DicomService implements OnModuleDestroy {
       include: {
         patient: {
           select: {
+            patientId: true,
             patientName: true,
           },
         },
@@ -523,6 +534,7 @@ export class DicomService implements OnModuleDestroy {
     return studies.map((study) =>
       this.dicomStudyFromRow({
         patientName: study.patient.patientName,
+        patientDicomId: study.patient.patientId,
         studyInstanceUid: study.studyInstanceUid,
         studyDate: study.studyDate,
         modalitiesInStudy: study.modalitiesInStudy,

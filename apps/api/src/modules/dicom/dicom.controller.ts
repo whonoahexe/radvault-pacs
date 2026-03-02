@@ -29,6 +29,7 @@ export class DicomController {
   @Roles(UserRole.Admin, UserRole.Radiologist, UserRole.Technologist, UserRole.ReferringPhysician)
   async getStudies(
     @Query('PatientName') patientName: string | undefined,
+    @Query('PatientID') patientId: string | undefined,
     @Query('StudyDate') studyDate: string | undefined,
     @Query('ModalitiesInStudy') modalitiesInStudy: string | undefined,
     @Query('AccessionNumber') accessionNumber: string | undefined,
@@ -41,6 +42,7 @@ export class DicomController {
     const result = await this.dicomService.queryStudies(
       {
         patientName,
+        patientId,
         studyDate,
         modalitiesInStudy,
         accessionNumber,
