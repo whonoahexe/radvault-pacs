@@ -16,6 +16,7 @@ export class WorklistController {
   constructor(private readonly worklistService: WorklistService) {}
 
   @Get()
+  @Roles(UserRole.Admin, UserRole.Radiologist)
   getWorklist(@Query() query: WorklistQueryDto) {
     return this.worklistService.getWorklist(query);
   }

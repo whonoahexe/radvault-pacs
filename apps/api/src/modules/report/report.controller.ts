@@ -60,6 +60,7 @@ export class ReportController {
   }
 
   @Get()
+  @Roles(UserRole.Admin, UserRole.Radiologist, UserRole.ReferringPhysician)
   list(
     @Query('studyId') studyId: string,
     @CurrentUser() user: AuthenticatedUser,
@@ -69,6 +70,7 @@ export class ReportController {
   }
 
   @Get(':id')
+  @Roles(UserRole.Admin, UserRole.Radiologist, UserRole.ReferringPhysician)
   getById(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser, @Req() req: Request) {
     return this.reportService.getById(id, user, req);
   }

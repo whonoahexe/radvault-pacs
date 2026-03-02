@@ -11,6 +11,10 @@
     "test": "echo \"No tests yet\""
   },
   "dependencies": {
+    "@cornerstonejs/core": "2.19.16",
+    "@cornerstonejs/dicom-image-loader": "2.19.16",
+    "@cornerstonejs/tools": "2.19.16",
+    "@icr/polyseg-wasm": "0.4.0",
     "@radvault/types": "*",
     "@tanstack/react-query": "5.90.21",
     "next": "14.2.35",
