@@ -1,5 +1,5 @@
 # ── Build stage ──────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -24,7 +24,9 @@ RUN npm run build --workspace=packages/types
 RUN npm run build --workspace=apps/web
 
 # ── Production stage ─────────────────────────
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
+
+RUN apk add --no-cache curl
 
 WORKDIR /app
 
@@ -36,9 +38,8 @@ COPY --from=builder /app/apps/web/.next/standalone ./
 COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder /app/apps/web/public ./apps/web/public
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
-
 EXPOSE 3000
+
+USER node
 
 CMD ["node", "apps/web/server.js"]

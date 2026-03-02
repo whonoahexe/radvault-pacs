@@ -7,9 +7,11 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"No tests yet\""
   },
   "devDependencies": {
-    "typescript": "^5.4.0"
+    "typescript": "5.9.3"
   }
 }

@@ -1,5 +1,5 @@
 # ── Build stage ──────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -19,7 +19,7 @@ COPY apps/worker/ ./apps/worker/
 RUN npm run build --workspace=apps/worker
 
 # ── Production stage ─────────────────────────
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 
 WORKDIR /app
 
@@ -35,5 +35,7 @@ RUN npm install --omit=dev
 COPY --from=builder /app/apps/worker/dist ./apps/worker/dist
 
 # No exposed port — worker is a background process
+
+USER node
 
 CMD ["node", "apps/worker/dist/index.js"]

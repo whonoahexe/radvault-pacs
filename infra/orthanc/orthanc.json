@@ -2,35 +2,20 @@
   "Name": "RadVault",
   "RemoteAccessAllowed": true,
   "AuthenticationEnabled": false,
-  "RegisteredUsers": {
-    "orthanc": "orthanc"
-  },
   "DicomWeb": {
     "Enable": true,
-    "Root": "/dicom-web/",
-    "EnableWado": true,
-    "WadoRoot": "/wado",
-    "Host": "0.0.0.0",
-    "Ssl": false
+    "Root": "/dicom-web/"
   },
   "Authorization": {
     "WebServiceRootUrl": "http://api:3000/internal/orthanc/",
-    "WebServiceUsername": "",
-    "WebServicePassword": "",
-    "StandardConfigurations": [
-      "osimis-web-viewer",
-      "stone-webviewer"
-    ],
     "CheckedLevel": "studies",
     "TokenHttpHeaders": ["Authorization"],
-    "TokenGetArguments": ["token"]
+    "UncheckedResources": ["/system"]
   },
   "AwsS3Storage": {
     "BucketName": "radvault-dicom",
     "Region": "us-east-1",
     "Endpoint": "http://minio:9000",
-    "AccessKey": "minioadmin",
-    "SecretKey": "minioadmin123",
     "VirtualAddressing": false
   },
   "HttpPort": 8042,

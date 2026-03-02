@@ -1,15 +1,10 @@
-// ──────────────────────────────────────────────
-// Prisma Schema — RadVault PACS
-// Full data model from REQUIREMENTS.md §3
-// ──────────────────────────────────────────────
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // Prisma 7: datasource URL is configured in apps/api/prisma.config.ts
 }
 
 // ── Enums ────────────────────────────────────
@@ -123,6 +118,7 @@ model Instance {
 
   series Series @relation(fields: [seriesId], references: [id])
 
+  @@index([seriesId])
   @@map("instances")
 }
 

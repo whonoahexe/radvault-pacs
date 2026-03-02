@@ -6,14 +6,17 @@
     "build": "tsc",
     "dev": "ts-node src/index.ts",
     "start": "node dist/index.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"No tests yet\""
   },
   "dependencies": {
-    "bullmq": "^5.4.0"
+    "bullmq": "5.70.1",
+    "sharp": "0.34.5"
   },
   "devDependencies": {
-    "@types/node": "^20.11.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.4.0"
+    "@types/node": "24.10.1",
+    "ts-node": "10.9.2",
+    "typescript": "5.9.3"
   }
 }

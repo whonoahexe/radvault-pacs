@@ -1,5 +1,5 @@
 # ── Build stage ──────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 RUN apk add --no-cache openssl
 
@@ -29,9 +29,9 @@ RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 RUN npm run build --workspace=apps/api
 
 # ── Production stage ─────────────────────────
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl curl
 
 WORKDIR /app
 
@@ -48,16 +48,15 @@ RUN npm install --omit=dev
 COPY --from=builder /app/packages/types/dist ./packages/types/dist
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+COPY --from=builder /app/apps/api/prisma.config.ts ./apps/api/prisma.config.ts
 COPY apps/api/entrypoint.sh ./apps/api/entrypoint.sh
-RUN chmod +x ./apps/api/entrypoint.sh
+RUN sed -i 's/\r$//' ./apps/api/entrypoint.sh && chmod +x ./apps/api/entrypoint.sh
 
 # Re-generate Prisma client for production image
 RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
-
 EXPOSE 3000
 
-CMD ["./apps/api/entrypoint.sh"]
+USER node
+
+CMD ["sh", "./apps/api/entrypoint.sh"]

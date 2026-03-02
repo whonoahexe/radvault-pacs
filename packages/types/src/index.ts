@@ -1,10 +1,3 @@
-// ──────────────────────────────────────────────
-// RadVault PACS — Shared TypeScript Types
-// Mirrors the data model from REQUIREMENTS.md §3
-// ──────────────────────────────────────────────
-
-// ── Enums ────────────────────────────────────
-
 export enum UserRole {
   Admin = 'Admin',
   Radiologist = 'Radiologist',
@@ -52,9 +45,7 @@ export enum AuditAction {
   USER_UPDATE = 'USER_UPDATE',
 }
 
-// ── Entity Interfaces ────────────────────────
-
-export interface Patient {
+export interface DicomPatient {
   id: string;
   patientId: string;
   patientName: string;
@@ -64,7 +55,7 @@ export interface Patient {
   updatedAt: Date;
 }
 
-export interface Study {
+export interface DicomStudy {
   id: string;
   patientId: string;
   studyInstanceUid: string;
@@ -84,7 +75,7 @@ export interface Study {
   updatedAt: Date;
 }
 
-export interface Series {
+export interface DicomSeries {
   id: string;
   studyId: string;
   seriesInstanceUid: string;
@@ -97,7 +88,7 @@ export interface Series {
   createdAt: Date;
 }
 
-export interface Instance {
+export interface DicomInstance {
   id: string;
   seriesId: string;
   sopInstanceUid: string;
@@ -183,21 +174,4 @@ export interface AuditLog {
   userAgent: string | null;
   details: Record<string, unknown> | null;
   createdAt: Date;
-}
-
-// ── Orthanc Authorization Plugin ─────────────
-
-export interface OrthancTokenValidateRequest {
-  'dicom-uid': string | null;
-  'orthanc-id': string | null;
-  level: string | null;
-  method: string;
-  'token-key': string | null;
-  'token-value': string | null;
-  'server-id': string | null;
-}
-
-export interface OrthancTokenValidateResponse {
-  granted: boolean;
-  validity: number;
 }

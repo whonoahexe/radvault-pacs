@@ -1,6 +1,8 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
     "outDir": "./dist",
     "rootDir": "./src",
     "emitDecoratorMetadata": true,

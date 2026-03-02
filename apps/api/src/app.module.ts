@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { DynamicModule, Module } from '@nestjs/common';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { PrismaModule } from './common/prisma.module';
 import { HealthModule } from './modules/health/health.module';
@@ -14,7 +14,7 @@ import { InternalModule } from './modules/internal/internal.module';
     PrismaModule,
     PrometheusModule.register({
       defaultMetrics: { enabled: true },
-    }),
+    }) as unknown as DynamicModule,
     HealthModule,
     DicomModule,
     WorklistModule,
