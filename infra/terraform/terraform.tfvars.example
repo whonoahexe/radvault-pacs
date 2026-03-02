@@ -1,0 +1,38 @@
+environment  = "dev"
+aws_region   = "us-east-1"
+aws_account_id = "123456789012"
+
+db_instance_class    = "db.t3.medium"
+db_multi_az_enabled  = false
+db_name              = "radvault"
+db_username          = "radvault"
+
+s3_bucket_name       = "radvault-dev-dicom-example"
+cache_node_type      = "cache.t3.micro"
+redis_port           = 6379
+
+alarm_email          = "alerts@example.com"
+
+image_api            = "public.ecr.aws/docker/library/node:20-alpine"
+image_worker         = "public.ecr.aws/docker/library/node:20-alpine"
+image_web            = "public.ecr.aws/docker/library/node:20-alpine"
+image_orthanc        = "jodogne/orthanc-plugins:latest"
+
+ecs_cpu = {
+  api    = 512
+  worker = 512
+  web    = 512
+  orthanc = 512
+}
+
+ecs_memory = {
+  api    = 1024
+  worker = 1024
+  web    = 1024
+  orthanc = 1024
+}
+
+resolve_ssm_parameters         = false
+ssm_db_password_parameter_name = "/radvault/dev/db/password"
+ssm_jwt_private_parameter_name = "/radvault/dev/jwt/private"
+ssm_jwt_public_parameter_name  = "/radvault/dev/jwt/public"

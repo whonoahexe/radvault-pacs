@@ -1,0 +1,23 @@
+{
+  "Name": "RadVault",
+  "RemoteAccessAllowed": true,
+  "AuthenticationEnabled": false,
+  "DicomWeb": {
+    "Enable": true,
+    "Root": "/dicom-web/"
+  },
+  "Authorization": {
+    "WebServiceRootUrl": "http://api:3000/internal/orthanc/",
+    "CheckedLevel": "studies",
+    "TokenHttpHeaders": ["Authorization"],
+    "UncheckedResources": ["/system"]
+  },
+  "AwsS3Storage": {
+    "BucketName": "radvault-dicom",
+    "Region": "us-east-1",
+    "Endpoint": "http://minio:9000",
+    "VirtualAddressing": false
+  },
+  "HttpPort": 8042,
+  "StableAge": 1
+}
