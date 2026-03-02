@@ -1,23 +1,17 @@
-# RadVault PACS — Senior Full-Stack Engineer Assessment
+# RadVault PACS
 
-> **Build a clinical radiology PACS in 1–2 days using AI-assisted development.**
-
----
-
-## What Is This?
-
-This repository contains everything you need for your technical assessment. You'll design and build **RadVault**, a modern web-based Picture Archiving and Communication System (PACS) for a mid-sized radiology practice. PACS is the backbone of every radiology department — it handles the ingestion, storage, retrieval, and display of medical images (X-rays, CT scans, MRIs) using the DICOM standard.
-
-The challenge is intentionally scoped beyond what's achievable through manual coding alone. **You are expected — and encouraged — to use AI coding assistants, agents, and copilots.** We're evaluating your ability to leverage these tools effectively, not whether you can type fast.
+RadVault is a full-stack, DICOMweb-enabled radiology PACS built for clinical workflow simulation: ingest studies via STOW-RS, query metadata via QIDO-RS, view pixel data through Orthanc WADO-RS, manage radiology worklists, author/sign/amend structured reports, and capture audit events with role-based access control.
 
 ## Quick Start
 
 ```bash
 cp .env.example .env
 docker compose up --build
-# Wait ~60 seconds for seed to complete
-# Demo accounts listed below
+# Wait ~60 seconds for seed bootstrap to complete
 ```
+
+Web UI: `http://localhost:3001`  
+API base: `http://localhost:3000`
 
 ## Demo Accounts
 
@@ -30,118 +24,53 @@ docker compose up --build
 
 ## Architecture Overview
 
-RadVault is implemented as a modular-monolith NestJS backend with Next.js frontend, Orthanc for DICOM storage/retrieval, PostgreSQL for metadata/worklist/reports, and Redis-backed worker processing for background jobs. This keeps DICOM protocol concerns isolated in the DICOM module while preserving clean in-process domain boundaries for auth, worklist, reporting, and auditing. For full details and diagrams, see [ARCHITECTURE.md](templates/ARCHITECTURE.md).
+RadVault uses a modular-monolith NestJS API, a Next.js frontend, Orthanc as the DICOM server, PostgreSQL for metadata/worklist/report persistence, Redis for queueing, and a background worker for thumbnail processing and asynchronous tasks. For full architecture diagrams and request flows, see [ARCHITECTURE.md](templates/ARCHITECTURE.md).
 
-## What We're Evaluating
+## Environment Variables
 
-| Dimension | Weight | What We're Looking For |
-|---|---|---|
-| **Architecture & Design Patterns** | 30% | Domain-driven design, DICOM data modeling, API contracts, separation of concerns |
-| **Full-Stack Implementation** | 25% | Production-quality code, type safety, error handling, testing |
-| **DevOps & Infrastructure** | 20% | Containerization, IaC, CI/CD, observability |
-| **AI-Assisted Development** | 15% | Effective prompting, knowing when to override AI, iteration velocity |
-| **Domain Understanding** | 10% | DICOM protocol, clinical workflows, HIPAA awareness |
+The following variables from `.env.example` are required for local stack startup.
 
-Full rubric: [docs/04-EVALUATION-RUBRIC.md](docs/04-EVALUATION-RUBRIC.md)
-
-## How It Works: Two Phases
-
-### Phase 1: Requirements Engineering (2–3 hours)
-
-Use an AI agent to produce a requirements and design document. This is itself a deliverable — it demonstrates your ability to scope, decompose, and communicate.
-
-1. Read the [Challenge Brief](docs/01-CHALLENGE-BRIEF.md) and [Domain Primer](docs/02-DOMAIN-PRIMER.md)
-2. Copy [templates/REQUIREMENTS.md](templates/REQUIREMENTS.md) into your repo and fill it out
-3. Copy [templates/ARCHITECTURE.md](templates/ARCHITECTURE.md) and add your system design
-4. Push to a private GitHub repo and notify the evaluation team
-5. We review and provide feedback within 4 business hours
-6. Iterate (up to 2 rounds) until we reach alignment
-
-### Phase 2: Implementation (8–12 hours)
-
-With approved requirements in hand, build RadVault.
-
-1. Read the [Technical Requirements](docs/03-TECHNICAL-REQUIREMENTS.md)
-2. Build the solution — use AI tools aggressively
-3. Track your time in [templates/TIMELOG.md](templates/TIMELOG.md)
-4. Document your AI workflow in [templates/AI_RETROSPECTIVE.md](templates/AI_RETROSPECTIVE.md)
-5. Tag your final commit as `v1.0.0` and notify us
-
-**Acceptance test:** `docker compose up` from a clean clone brings up the full stack.
-
-## Ground Rules
-
-| Rule | Details |
+| Variable | Description |
 |---|---|
-| **AI Tools** | Any and all AI assistants, agents, copilots. **Document what you used.** |
-| **Libraries** | Any open-source libraries. Credit them. No proprietary SDKs beyond trial tiers. |
-| **OHIF / Cornerstone.js** | Allowed as viewer foundation. We evaluate integration, not viewer authorship. |
-| **Orthanc / DCM4CHEE** | Allowed as DICOM server component. We evaluate how you extend it. |
-| **Plagiarism** | Do not clone an existing PACS repo wholesale. AI-generated code is fine. |
-| **Cloud Deployment** | IaC must be valid but need not be deployed. `docker compose up` is the acceptance test. |
-| **Time Tracking** | Required. Use [TIMELOG.md](templates/TIMELOG.md). We're calibrating difficulty, not policing hours. |
+| `NODE_ENV` | Runtime environment (`development` for local compose). |
+| `POSTGRES_USER` | PostgreSQL username used by the API and seed jobs. |
+| `POSTGRES_PASSWORD` | PostgreSQL password for the configured user. |
+| `POSTGRES_DB` | PostgreSQL database name. |
+| `DATABASE_URL` | Prisma/NestJS PostgreSQL connection string. |
+| `REDIS_URL` | Redis connection string for queues/caching. |
+| `MINIO_ROOT_USER` | MinIO admin access key. |
+| `MINIO_ROOT_PASSWORD` | MinIO admin secret key. |
+| `MINIO_BUCKET` | S3 bucket name for DICOM and thumbnails. |
+| `MINIO_ENDPOINT` | MinIO/S3 endpoint URL used by services. |
+| `ORTHANC_URL` | Internal Orthanc base URL used by API/worker. |
+| `JWT_PRIVATE_KEY` | PEM private key used to sign JWT access tokens. |
+| `JWT_PUBLIC_KEY` | PEM public key used to verify JWTs. |
+| `JWT_EXPIRY` | Access token expiration window. |
+| `REFRESH_TOKEN_EXPIRY` | Refresh token expiration window. |
+| `WORKER_JWT` | Optional worker token for Orthanc callbacks; auto-generated if empty. |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OpenTelemetry trace export endpoint. |
+| `GF_SECURITY_ADMIN_PASSWORD` | Grafana admin password. |
+| `NEXT_PUBLIC_API_URL` | Browser-visible base URL for API calls. |
+| `NEXT_PUBLIC_ORTHANC_WADO_URL` | Browser-visible Orthanc WADO/DICOMweb URL. |
 
-## Deliverables Checklist
+## Running Tests
 
-| # | Deliverable | Required |
-|---|---|---|
-| 1 | Source code repository with clean git history | Yes |
-| 2 | `docker-compose.yml` that brings up the full stack | Yes |
-| 3 | API documentation (OpenAPI at `/docs` or `/swagger`) | Yes |
-| 4 | Terraform/Pulumi IaC configuration | Yes |
-| 5 | CI/CD pipeline definition (GitHub Actions YAML or equivalent) | Yes |
-| 6 | Test suite with coverage report | Yes |
-| 7 | `TIMELOG.md` | Yes |
-| 8 | `AI_RETROSPECTIVE.md` | Yes |
-| 9 | `README.md` with setup instructions and architecture overview | Yes |
-| 10 | Seed data (synthetic patients, studies, demo accounts) | Yes |
-
-## Validate Your Submission
-
-Before submitting, run our automated checker against your repo:
+Run from `apps/api`:
 
 ```bash
-# From this assessment repo
-make check REPO=/path/to/your/radvault-submission
+npm run test:unit        # unit tests (CI-safe)
+npm run test:coverage    # with coverage report
+npm run test:integration # requires running stack
 ```
 
-This verifies required files exist, Docker Compose is valid, no hardcoded secrets, and basic structure.
+## API Documentation
 
-## Worker Orthanc Token
+Swagger UI is available at `http://localhost:3000/docs` after `docker compose up`.
 
-The thumbnail worker automatically generates `WORKER_JWT` from `JWT_PRIVATE_KEY` if `WORKER_JWT` is not set, so a fresh `docker compose up --build` works without manual token generation.
+## Submission Validator
 
-If you want to provide a fixed token explicitly, you can still generate one:
+From the assessment repository, run:
 
 ```bash
-$env:JWT_PRIVATE_KEY = (Select-String '^JWT_PRIVATE_KEY=' .env).Line.Substring(16)
-npm run generate:worker-jwt
+make check REPO=.
 ```
-
-## After Submission
-
-We'll schedule a 60–90 minute session where you:
-
-1. Demo the running application (ingestion → search → view → report)
-2. Walk through architecture decisions and trade-offs
-3. Discuss your AI-assisted development process
-4. Answer questions about scaling, production-readiness, and extension points
-5. Discuss what you'd do differently with more time
-
-## Documentation Map
-
-| Document | Audience | Purpose |
-|---|---|---|
-| [Challenge Brief](docs/01-CHALLENGE-BRIEF.md) | Candidate | Full challenge description and process |
-| [Domain Primer](docs/02-DOMAIN-PRIMER.md) | Candidate | DICOM/PACS crash course |
-| [Technical Requirements](docs/03-TECHNICAL-REQUIREMENTS.md) | Candidate | Detailed specs for backend, frontend, DevOps |
-| [Evaluation Rubric](docs/04-EVALUATION-RUBRIC.md) | Candidate + Evaluators | Scoring criteria per dimension |
-| [Resources](docs/05-RESOURCES.md) | Candidate | Helpful links, libraries, test data |
-| [Requirements Template](templates/REQUIREMENTS.md) | Candidate | Phase 1 fill-in template |
-| [Architecture Template](templates/ARCHITECTURE.md) | Candidate | Design doc template with Mermaid stubs |
-| [AI Retrospective Template](templates/AI_RETROSPECTIVE.md) | Candidate | Post-build reflection template |
-| [Time Log Template](templates/TIMELOG.md) | Candidate | Time tracking |
-
----
-
-**Questions?** Reach out to the evaluation team at any time. Good luck — build something you'd be proud to ship.

@@ -12,7 +12,9 @@ out/
 # Environment
 .env
 .env.local
+.env.*
 .env.*.local
+!.env.example
 
 # Prisma
 apps/api/prisma/generated/
@@ -36,6 +38,7 @@ coverage/
 
 # Terraform
 infra/terraform/.terraform/
+**/.terraform/
 *.tfstate
 *.tfstate.backup
 .terraform.lock.hcl
