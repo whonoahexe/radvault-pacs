@@ -10,6 +10,28 @@ This repository contains everything you need for your technical assessment. You'
 
 The challenge is intentionally scoped beyond what's achievable through manual coding alone. **You are expected — and encouraged — to use AI coding assistants, agents, and copilots.** We're evaluating your ability to leverage these tools effectively, not whether you can type fast.
 
+## Quick Start
+
+```bash
+cp .env.example .env
+docker compose up --build
+# Wait ~60 seconds for seed to complete
+# Demo accounts listed below
+```
+
+## Demo Accounts
+
+| Email | Password | Full Name | Role |
+|---|---|---|---|
+| admin@radvault.local | Admin1234! | System Admin | Admin |
+| radiologist@radvault.local | Rad1234! | Dr. Sarah Chen | Radiologist |
+| tech@radvault.local | Tech1234! | James Wright | Technologist |
+| referring@radvault.local | Ref1234! | Dr. Marcus Reid | ReferringPhysician |
+
+## Architecture Overview
+
+RadVault is implemented as a modular-monolith NestJS backend with Next.js frontend, Orthanc for DICOM storage/retrieval, PostgreSQL for metadata/worklist/reports, and Redis-backed worker processing for background jobs. This keeps DICOM protocol concerns isolated in the DICOM module while preserving clean in-process domain boundaries for auth, worklist, reporting, and auditing. For full details and diagrams, see [ARCHITECTURE.md](templates/ARCHITECTURE.md).
+
 ## What We're Evaluating
 
 | Dimension | Weight | What We're Looking For |
@@ -85,28 +107,16 @@ make check REPO=/path/to/your/radvault-submission
 
 This verifies required files exist, Docker Compose is valid, no hardcoded secrets, and basic structure.
 
-## Worker Orthanc Token (Required for thumbnails)
+## Worker Orthanc Token
 
-The thumbnail worker calls Orthanc rendered endpoints and must send a valid JWT.
+The thumbnail worker automatically generates `WORKER_JWT` from `JWT_PRIVATE_KEY` if `WORKER_JWT` is not set, so a fresh `docker compose up --build` works without manual token generation.
 
-1. Generate a long-lived worker token (service account style):
+If you want to provide a fixed token explicitly, you can still generate one:
 
 ```bash
 $env:JWT_PRIVATE_KEY = (Select-String '^JWT_PRIVATE_KEY=' .env).Line.Substring(16)
 npm run generate:worker-jwt
 ```
-
-2. Set the output token into your environment as `WORKER_JWT` (or in `.env`) and restart the worker:
-
-```bash
-docker compose up -d --build worker
-```
-
-Expected claims in the generated token payload:
-
-- `sub: "worker"`
-- `role: "Admin"`
-- `exp`: ~1 year from generation time
 
 ## After Submission
 

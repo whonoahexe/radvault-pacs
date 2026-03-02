@@ -1,6 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Pool } from 'pg';
+import crypto from 'node:crypto';
 import sharp from 'sharp';
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
@@ -25,7 +26,57 @@ const MINIO_ROOT_USER = getRequiredEnv('MINIO_ROOT_USER');
 const MINIO_ROOT_PASSWORD = getRequiredEnv('MINIO_ROOT_PASSWORD');
 const MINIO_BUCKET = getRequiredEnv('MINIO_BUCKET');
 const DATABASE_URL = getRequiredEnv('DATABASE_URL');
-const WORKER_JWT = getRequiredEnv('WORKER_JWT');
+
+function base64url(input: Buffer | string): string {
+  return Buffer.from(input)
+    .toString('base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+}
+
+function generateWorkerJwtFromPrivateKey(privateKey: string): string {
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const expiresInSeconds = 60 * 60 * 24 * 365;
+
+  const header = {
+    alg: 'RS256',
+    typ: 'JWT',
+  };
+
+  const payload = {
+    sub: 'worker',
+    role: 'Admin',
+    iat: nowSeconds,
+    exp: nowSeconds + expiresInSeconds,
+  };
+
+  const encodedHeader = base64url(JSON.stringify(header));
+  const encodedPayload = base64url(JSON.stringify(payload));
+  const data = `${encodedHeader}.${encodedPayload}`;
+
+  const signature = crypto.createSign('RSA-SHA256').update(data).end().sign(privateKey);
+  return `${data}.${base64url(signature)}`;
+}
+
+function resolveWorkerJwt(): string {
+  const configuredToken = process.env.WORKER_JWT?.trim();
+  if (configuredToken) {
+    return configuredToken;
+  }
+
+  const privateKey = process.env.JWT_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  if (!privateKey) {
+    throw new Error(
+      '[Worker] WORKER_JWT is not set and JWT_PRIVATE_KEY is unavailable for auto-generation',
+    );
+  }
+
+  console.log('[Worker] WORKER_JWT not set; generating token from JWT_PRIVATE_KEY');
+  return generateWorkerJwtFromPrivateKey(privateKey);
+}
+
+const WORKER_JWT = resolveWorkerJwt();
 
 const s3Client = new S3Client({
   endpoint: MINIO_ENDPOINT,
