@@ -6,6 +6,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { createWinstonLogger } from './common/logger';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 async function bootstrap(): Promise<void> {
   const logger = createWinstonLogger();
@@ -19,6 +20,8 @@ async function bootstrap(): Promise<void> {
       transform: true,
     }),
   );
+
+  app.useGlobalFilters(new GlobalExceptionFilter());
 
   // CORS
   app.enableCors();

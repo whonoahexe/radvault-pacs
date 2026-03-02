@@ -7,8 +7,10 @@ import {
 } from '@nestjs/terminus';
 import { Socket } from 'node:net';
 import { PrismaService } from '../../common/prisma.service';
+import { Public } from '../auth/decorators/public.decorator';
 
 @Controller()
+@Public()
 export class HealthController {
   constructor(
     private readonly health: HealthCheckService,

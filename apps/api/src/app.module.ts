@@ -1,4 +1,4 @@
-import { DynamicModule, Module } from '@nestjs/common';
+import { DynamicModule, MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { PrismaModule } from './common/prisma.module';
 import { HealthModule } from './modules/health/health.module';
@@ -8,6 +8,7 @@ import { ReportModule } from './modules/report/report.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { InternalModule } from './modules/internal/internal.module';
+import { RequestLoggingMiddleware } from './common/middleware/request-logging.middleware';
 
 @Module({
   imports: [
@@ -24,4 +25,8 @@ import { InternalModule } from './modules/internal/internal.module';
     InternalModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(RequestLoggingMiddleware).forRoutes('*');
+  }
+}
