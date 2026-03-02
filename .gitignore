@@ -33,3 +33,9 @@ npm-debug.log*
 
 # Testing
 coverage/
+
+# Terraform
+infra/terraform/.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
