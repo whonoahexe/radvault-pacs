@@ -85,6 +85,29 @@ make check REPO=/path/to/your/radvault-submission
 
 This verifies required files exist, Docker Compose is valid, no hardcoded secrets, and basic structure.
 
+## Worker Orthanc Token (Required for thumbnails)
+
+The thumbnail worker calls Orthanc rendered endpoints and must send a valid JWT.
+
+1. Generate a long-lived worker token (service account style):
+
+```bash
+$env:JWT_PRIVATE_KEY = (Select-String '^JWT_PRIVATE_KEY=' .env).Line.Substring(16)
+npm run generate:worker-jwt
+```
+
+2. Set the output token into your environment as `WORKER_JWT` (or in `.env`) and restart the worker:
+
+```bash
+docker compose up -d --build worker
+```
+
+Expected claims in the generated token payload:
+
+- `sub: "worker"`
+- `role: "Admin"`
+- `exp`: ~1 year from generation time
+
 ## After Submission
 
 We'll schedule a 60–90 minute session where you:

@@ -16,7 +16,8 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "generate:worker-jwt": "node scripts/generate-worker-jwt.mjs"
   },
   "devDependencies": {
     "prettier": "3.8.1",

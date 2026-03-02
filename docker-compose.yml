@@ -123,6 +123,13 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV}
       REDIS_URL: ${REDIS_URL}
+      ORTHANC_URL: ${ORTHANC_URL}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET}
+      DATABASE_URL: ${DATABASE_URL}
+      WORKER_JWT: ${WORKER_JWT}
     networks:
       - radvault
 
