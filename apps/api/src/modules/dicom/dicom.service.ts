@@ -13,6 +13,7 @@ import type { Request } from 'express';
 import { AuditAction, UserRole } from '@radvault/types';
 import { PrismaService } from '../../common/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { EventsService } from '../events/events.service';
 import type { AuthenticatedUser } from '../auth/types/auth-user.type';
 
 interface DicomQueryParams {
@@ -97,6 +98,7 @@ export class DicomService implements OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly eventsService: EventsService,
   ) {
     const redisConnection = parseRedisUrl(process.env.REDIS_URL ?? 'redis://redis:6379');
     this.queue = new Queue('thumbnail-generation', {
@@ -118,6 +120,44 @@ export class DicomService implements OnModuleDestroy {
     }
 
     return forwardedFor.split(',')[0]?.trim() ?? null;
+  }
+
+  /**
+   * Pre-flight DICOM conformance check.
+   * A valid DICOM Part 10 file has a 128-byte preamble followed by the
+   * 4-byte magic sequence "DICM" at offset 128.  We locate the first
+   * multipart part body inside the STOW-RS payload and verify those bytes
+   * before forwarding anything to Orthanc.
+   */
+  private validateDicomMagic(body: Buffer, boundary: string): void {
+    const boundaryMarker = Buffer.from(`--${boundary}`);
+    const markerIdx = body.indexOf(boundaryMarker);
+    if (markerIdx === -1) {
+      throw new BadRequestException('Invalid multipart/related body: boundary marker not found');
+    }
+
+    // Skip past the boundary line + headers to the blank line ('\r\n\r\n')
+    const headerSep = Buffer.from('\r\n\r\n');
+    const headerEndIdx = body.indexOf(headerSep, markerIdx + boundaryMarker.length);
+    if (headerEndIdx === -1) {
+      throw new BadRequestException('Invalid multipart/related body: malformed part headers');
+    }
+
+    const partBodyStart = headerEndIdx + 4; // 4 = length of '\r\n\r\n'
+
+    // DICOM Part 10: preamble is 128 bytes, then 'DICM' at offset 128
+    if (body.length < partBodyStart + 132) {
+      throw new BadRequestException(
+        'Upload does not appear to be a valid DICOM file (payload too small)',
+      );
+    }
+
+    const magic = body.slice(partBodyStart + 128, partBodyStart + 132).toString('ascii');
+    if (magic !== 'DICM') {
+      throw new BadRequestException(
+        'Upload is not a valid DICOM file (missing DICM prefix at byte 128)',
+      );
+    }
   }
 
   private getDicomValue(dataset: DicomDataset, tag: string): unknown {
@@ -251,6 +291,26 @@ export class DicomService implements OnModuleDestroy {
       throw new BadRequestException('STOW-RS requires multipart/related content type');
     }
 
+    // Extract boundary parameter for multipart validation
+    const boundaryMatch = /boundary=([^;\s]+)/i.exec(contentType);
+    if (!boundaryMatch?.[1]) {
+      throw new BadRequestException('multipart/related Content-Type is missing boundary parameter');
+    }
+    const boundary = boundaryMatch[1].replace(/^"|"$/g, '').trim();
+
+    // Buffer the full request body so we can (a) validate DICOM conformance
+    // pre-flight and (b) forward the exact bytes to Orthanc.
+    const requestBody = await new Promise<Buffer>((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      req.on('data', (chunk: Buffer) => chunks.push(chunk));
+      req.on('end', () => resolve(Buffer.concat(chunks)));
+      req.on('error', reject);
+    });
+
+    // Pre-flight: verify DICOM Part 10 magic bytes ('DICM' at byte 128 of
+    // the first multipart part) before forwarding anything to Orthanc.
+    this.validateDicomMagic(requestBody, boundary);
+
     const orthancUrl = new URL(`${this.orthancBaseUrl}/dicom-web/studies`);
     const client = orthancUrl.protocol === 'https:' ? httpsRequest : httpRequest;
 
@@ -264,6 +324,7 @@ export class DicomService implements OnModuleDestroy {
           path: orthancUrl.pathname,
           headers: {
             'content-type': contentType,
+            'content-length': requestBody.length,
             authorization: req.header('authorization') ?? '',
           },
         },
@@ -287,7 +348,8 @@ export class DicomService implements OnModuleDestroy {
       );
 
       outbound.on('error', (error: Error) => reject(new BadGatewayException(error.message)));
-      req.pipe(outbound);
+      outbound.write(requestBody);
+      outbound.end();
     });
 
     const studyUid = this.parseStudyUidFromStowResponse(responseBody);
@@ -443,6 +505,19 @@ export class DicomService implements OnModuleDestroy {
     await this.queue.add('thumbnail-generation', {
       studyId: studyUid,
       instanceId: firstSopInstanceUid,
+    });
+
+    // Publish ingestion event to SSE subscribers
+    this.eventsService.emitStudyIngested({
+      studyUid,
+      patientName,
+      studyDate: formatDateForDicom(
+        parseDateTag(String(this.getDicomValue(firstDataset, '00080020') ?? '')),
+      ),
+      modalitiesInStudy: modalitiesInStudy ?? null,
+      numberOfInstances: metadata.length,
+      uploadedBy: user.sub,
+      timestamp: new Date().toISOString(),
     });
 
     void this.auditService.log({

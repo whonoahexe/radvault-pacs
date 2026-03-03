@@ -8,6 +8,7 @@ import { ReportModule } from './modules/report/report.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { InternalModule } from './modules/internal/internal.module';
+import { EventsModule } from './modules/events/events.module';
 import { RequestLoggingMiddleware } from './common/middleware/request-logging.middleware';
 
 @Module({
@@ -23,6 +24,7 @@ import { RequestLoggingMiddleware } from './common/middleware/request-logging.mi
     AuthModule,
     AuditModule,
     InternalModule,
+    EventsModule,
   ],
 })
 export class AppModule implements NestModule {
