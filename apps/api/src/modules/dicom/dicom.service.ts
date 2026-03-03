@@ -24,6 +24,8 @@ interface DicomQueryParams {
   accessionNumber?: string;
   page?: string;
   limit?: string;
+  /** QIDO-RS includefield: tag numbers, keywords, or "all" */
+  includefield?: string | string[];
 }
 
 interface DicomTagValue {
@@ -111,6 +113,108 @@ export class DicomService implements OnModuleDestroy {
 
   async onModuleDestroy(): Promise<void> {
     await this.queue.close();
+  }
+
+  // ---------------------------------------------------------------------------
+  // QIDO-RS includefield support
+  // ---------------------------------------------------------------------------
+
+  /** Mandatory tags returned at study level when includefield is omitted. */
+  private static readonly STUDY_DEFAULT_TAGS = new Set([
+    '00100010', // PatientName
+    '00100020', // PatientID
+    '0020000d', // StudyInstanceUID
+    '00080020', // StudyDate
+    '00080061', // ModalitiesInStudy
+    '00080050', // AccessionNumber
+    '00201206', // NumberOfStudyRelatedSeries
+    '00201208', // NumberOfStudyRelatedInstances
+  ]);
+
+  /** Mandatory tags returned at series level when includefield is omitted. */
+  private static readonly SERIES_DEFAULT_TAGS = new Set([
+    '0020000e', // SeriesInstanceUID
+    '00080060', // Modality
+    '00200011', // SeriesNumber
+    '00201209', // NumberOfSeriesRelatedInstances
+  ]);
+
+  /** Mandatory tags returned at instance level when includefield is omitted. */
+  private static readonly INSTANCE_DEFAULT_TAGS = new Set([
+    '00080018', // SOPInstanceUID
+    '00080016', // SOPClassUID
+    '00200013', // InstanceNumber
+  ]);
+
+  /** Map DICOM keyword → lowercase 8-char tag number for includefield resolution. */
+  private static readonly KEYWORD_TO_TAG: Record<string, string> = {
+    PatientName: '00100010',
+    PatientID: '00100020',
+    StudyInstanceUID: '0020000d',
+    StudyDate: '00080020',
+    ModalitiesInStudy: '00080061',
+    AccessionNumber: '00080050',
+    StudyDescription: '00081030',
+    ReferringPhysicianName: '00080090',
+    InstitutionName: '00080080',
+    NumberOfStudyRelatedSeries: '00201206',
+    NumberOfStudyRelatedInstances: '00201208',
+    SeriesInstanceUID: '0020000e',
+    Modality: '00080060',
+    SeriesDescription: '0008103e',
+    SeriesNumber: '00200011',
+    NumberOfSeriesRelatedInstances: '00201209',
+    SOPInstanceUID: '00080018',
+    SOPClassUID: '00080016',
+    InstanceNumber: '00200013',
+    Rows: '00280010',
+    Columns: '00280011',
+  };
+
+  /**
+   * Filter a fully-built DICOM tag object according to the QIDO-RS includefield
+   * parameter rules (PS 3.18-2023 §8.3.4.3):
+   *   - No includefield → return every tag (backwards-compatible default).
+   *   - includefield=all  → return every tag.
+   *   - Otherwise         → return the mandatory default tags for that level
+   *                         PLUS any explicitly requested tags.
+   *
+   * `field` values may be 8-char hex tag numbers or DICOM keyword names.
+   */
+  private applyIncludeField(
+    response: Record<string, unknown>,
+    defaultTags: Set<string>,
+    includefield: string | string[] | undefined,
+  ): Record<string, unknown> {
+    // No includefield or includefield=all → return everything (current behaviour)
+    if (includefield === undefined) {
+      return response;
+    }
+
+    const fields = Array.isArray(includefield) ? includefield : [includefield];
+
+    if (fields.some((f) => f.trim().toLowerCase() === 'all')) {
+      return response;
+    }
+
+    // Build set of explicitly requested tag numbers (normalised to lowercase)
+    const requested = new Set<string>();
+    for (const field of fields) {
+      const f = field.trim();
+      if (/^[0-9A-Fa-f]{8}$/.test(f)) {
+        requested.add(f.toLowerCase());
+      } else {
+        const tagNum = DicomService.KEYWORD_TO_TAG[f];
+        if (tagNum) requested.add(tagNum);
+      }
+    }
+
+    // Return default mandatory tags + any extras the caller requested
+    return Object.fromEntries(
+      Object.entries(response).filter(
+        ([tag]) => defaultTags.has(tag.toLowerCase()) || requested.has(tag.toLowerCase()),
+      ),
+    );
   }
 
   private normalizeIp(req: Request): string | null {
@@ -615,19 +719,23 @@ export class DicomService implements OnModuleDestroy {
     });
 
     return studies.map((study) =>
-      this.dicomStudyFromRow({
-        patientName: study.patient.patientName,
-        patientDicomId: study.patient.patientId,
-        studyInstanceUid: study.studyInstanceUid,
-        studyDate: study.studyDate,
-        modalitiesInStudy: study.modalitiesInStudy,
-        accessionNumber: study.accessionNumber,
-        studyDescription: study.studyDescription,
-        referringPhysicianName: study.referringPhysicianName,
-        institutionName: study.institutionName,
-        numberOfSeries: study.numberOfSeries,
-        numberOfInstances: study.numberOfInstances,
-      }),
+      this.applyIncludeField(
+        this.dicomStudyFromRow({
+          patientName: study.patient.patientName,
+          patientDicomId: study.patient.patientId,
+          studyInstanceUid: study.studyInstanceUid,
+          studyDate: study.studyDate,
+          modalitiesInStudy: study.modalitiesInStudy,
+          accessionNumber: study.accessionNumber,
+          studyDescription: study.studyDescription,
+          referringPhysicianName: study.referringPhysicianName,
+          institutionName: study.institutionName,
+          numberOfSeries: study.numberOfSeries,
+          numberOfInstances: study.numberOfInstances,
+        }),
+        DicomService.STUDY_DEFAULT_TAGS,
+        query.includefield,
+      ),
     );
   }
 
@@ -635,6 +743,7 @@ export class DicomService implements OnModuleDestroy {
     studyUid: string,
     user: AuthenticatedUser,
     req: Request,
+    includefield?: string | string[],
   ): Promise<Record<string, unknown>[]> {
     const study = await this.prisma.study.findUnique({
       where: { studyInstanceUid: studyUid },
@@ -670,13 +779,17 @@ export class DicomService implements OnModuleDestroy {
     });
 
     return series.map((item) =>
-      this.dicomSeriesFromRow({
-        seriesInstanceUid: item.seriesInstanceUid,
-        modality: item.modality,
-        seriesDescription: item.seriesDescription,
-        seriesNumber: item.seriesNumber,
-        numberOfInstances: item.numberOfInstances,
-      }),
+      this.applyIncludeField(
+        this.dicomSeriesFromRow({
+          seriesInstanceUid: item.seriesInstanceUid,
+          modality: item.modality,
+          seriesDescription: item.seriesDescription,
+          seriesNumber: item.seriesNumber,
+          numberOfInstances: item.numberOfInstances,
+        }),
+        DicomService.SERIES_DEFAULT_TAGS,
+        includefield,
+      ),
     );
   }
 
@@ -685,6 +798,7 @@ export class DicomService implements OnModuleDestroy {
     seriesUid: string,
     user: AuthenticatedUser,
     req: Request,
+    includefield?: string | string[],
   ): Promise<Record<string, unknown>[]> {
     const study = await this.prisma.study.findUnique({
       where: { studyInstanceUid: studyUid },
@@ -732,13 +846,17 @@ export class DicomService implements OnModuleDestroy {
     });
 
     return instances.map((item) =>
-      this.dicomInstanceFromRow({
-        sopInstanceUid: item.sopInstanceUid,
-        sopClassUid: item.sopClassUid,
-        instanceNumber: item.instanceNumber,
-        rows: item.rows,
-        columns: item.columns,
-      }),
+      this.applyIncludeField(
+        this.dicomInstanceFromRow({
+          sopInstanceUid: item.sopInstanceUid,
+          sopClassUid: item.sopClassUid,
+          instanceNumber: item.instanceNumber,
+          rows: item.rows,
+          columns: item.columns,
+        }),
+        DicomService.INSTANCE_DEFAULT_TAGS,
+        includefield,
+      ),
     );
   }
 }

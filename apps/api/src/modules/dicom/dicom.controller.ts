@@ -35,6 +35,7 @@ export class DicomController {
     @Query('AccessionNumber') accessionNumber: string | undefined,
     @Query('page') page: string | undefined,
     @Query('limit') limit: string | undefined,
+    @Query('includefield') includefield: string | string[] | undefined,
     @CurrentUser() user: AuthenticatedUser,
     @Req() req: Request,
     @Res() res: Response,
@@ -48,6 +49,7 @@ export class DicomController {
         accessionNumber,
         page,
         limit,
+        includefield,
       },
       user,
       req,
@@ -60,11 +62,12 @@ export class DicomController {
   @Roles(UserRole.Admin, UserRole.Radiologist, UserRole.Technologist, UserRole.ReferringPhysician)
   async getSeries(
     @Param('studyUID') studyUID: string,
+    @Query('includefield') includefield: string | string[] | undefined,
     @CurrentUser() user: AuthenticatedUser,
     @Req() req: Request,
     @Res() res: Response,
   ): Promise<void> {
-    const result = await this.dicomService.querySeries(studyUID, user, req);
+    const result = await this.dicomService.querySeries(studyUID, user, req, includefield);
     res.setHeader('content-type', 'application/dicom+json');
     res.status(200).send(result);
   }
@@ -74,11 +77,12 @@ export class DicomController {
   async getInstances(
     @Param('studyUID') studyUID: string,
     @Param('seriesUID') seriesUID: string,
+    @Query('includefield') includefield: string | string[] | undefined,
     @CurrentUser() user: AuthenticatedUser,
     @Req() req: Request,
     @Res() res: Response,
   ): Promise<void> {
-    const result = await this.dicomService.queryInstances(studyUID, seriesUID, user, req);
+    const result = await this.dicomService.queryInstances(studyUID, seriesUID, user, req, includefield);
     res.setHeader('content-type', 'application/dicom+json');
     res.status(200).send(result);
   }
