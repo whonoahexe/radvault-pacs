@@ -19,7 +19,7 @@ function normalizePem(value: string): string {
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
       global: true,
-      privateKey: normalizePem(process.env.JWT_PRIVATE_KEY ?? ''),
+      privateKey: normalizePem(process.env.JWT_SIGNING_KEY ?? ''),
       publicKey: normalizePem(process.env.JWT_PUBLIC_KEY ?? ''),
       signOptions: {
         algorithm: 'RS256',

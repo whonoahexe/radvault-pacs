@@ -65,14 +65,14 @@ function resolveWorkerJwt(): string {
     return configuredToken;
   }
 
-  const privateKey = process.env.JWT_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  const privateKey = process.env.JWT_SIGNING_KEY?.replace(/\\n/g, '\n');
   if (!privateKey) {
     throw new Error(
-      '[Worker] WORKER_JWT is not set and JWT_PRIVATE_KEY is unavailable for auto-generation',
+      '[Worker] WORKER_JWT is not set and JWT_SIGNING_KEY is unavailable for auto-generation',
     );
   }
 
-  console.log('[Worker] WORKER_JWT not set; generating token from JWT_PRIVATE_KEY');
+  console.log('[Worker] WORKER_JWT not set; generating token from JWT_SIGNING_KEY');
   return generateWorkerJwtFromPrivateKey(privateKey);
 }
 

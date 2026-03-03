@@ -41,9 +41,9 @@ function base64url(input: Buffer | string): string {
 }
 
 function createServiceJwt(): string {
-  const privateKey = process.env.JWT_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  const privateKey = process.env.JWT_SIGNING_KEY?.replace(/\\n/g, '\n');
   if (!privateKey) {
-    throw new Error('JWT_PRIVATE_KEY is required for Orthanc seed authorization');
+    throw new Error('JWT_SIGNING_KEY is required for Orthanc seed authorization');
   }
 
   const nowSeconds = Math.floor(Date.now() / 1000);

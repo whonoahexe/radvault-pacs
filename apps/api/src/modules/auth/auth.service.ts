@@ -46,7 +46,7 @@ export class AuthService {
   private async createAccessToken(payload: JwtPayload): Promise<string> {
     return this.jwtService.signAsync(payload, {
       algorithm: 'RS256',
-      privateKey: (process.env.JWT_PRIVATE_KEY ?? '').replace(/\\n/g, '\n'),
+      privateKey: (process.env.JWT_SIGNING_KEY ?? '').replace(/\\n/g, '\n'),
       expiresIn: this.accessTokenExpiry,
     });
   }

@@ -37,7 +37,7 @@ jobs:
       NODE_ENV: test
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
-      JWT_PRIVATE_KEY: ${{ secrets.JWT_PRIVATE_KEY }}
+      JWT_SIGNING_KEY: ${{ secrets.JWT_SIGNING_KEY }}
       JWT_PUBLIC_KEY: ${{ secrets.JWT_PUBLIC_KEY }}
     services:
       postgres:
