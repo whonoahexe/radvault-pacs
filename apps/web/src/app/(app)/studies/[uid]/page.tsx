@@ -1,7 +1,12 @@
 'use client';
 
 import { use } from 'react';
-import { CornerstoneViewer } from '@/components/viewer/cornerstone-viewer';
+import dynamic from 'next/dynamic';
+
+const CornerstoneViewer = dynamic(
+  () => import('@/components/viewer/cornerstone-viewer').then((m) => m.CornerstoneViewer),
+  { ssr: false },
+);
 
 export default function StudyDetailPage({ params }: { params: Promise<{ uid: string }> }) {
   const { uid } = use(params);

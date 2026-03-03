@@ -6,7 +6,12 @@ import { ReportStatus, UserRole } from '@radvault/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { RichTextEditor } from '@/components/editor/rich-text-editor';
-import { CornerstoneViewer } from '@/components/viewer/cornerstone-viewer';
+import dynamic from 'next/dynamic';
+
+const CornerstoneViewer = dynamic(
+  () => import('@/components/viewer/cornerstone-viewer').then((m) => m.CornerstoneViewer),
+  { ssr: false },
+);
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 
