@@ -75,7 +75,7 @@ jobs:
         run: npm ci
 
       - name: Prisma migrate deploy
-        run: npx prisma migrate deploy
+        run: npx prisma migrate deploy --config apps/api/prisma.config.ts
         env:
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
 
