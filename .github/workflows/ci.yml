@@ -145,16 +145,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Prisma migrate deploy
-        run: npx prisma migrate deploy --config apps/api/prisma.config.ts
+      - name: Prisma push schema
+        run: npx prisma db push --config apps/api/prisma.config.ts --accept-data-loss
         env:
           DATABASE_URL: postgresql://radvault:radvault@localhost:5432/radvault_test
 
       - name: Prisma generate
         run: npx prisma generate --config apps/api/prisma.config.ts
-
-      - name: Build @radvault/types
-        run: npm run build --workspace=@radvault/types
 
       - name: Run integration tests
         run: cd apps/api && npx jest --testPathPattern=test --forceExit --runInBand

@@ -36,7 +36,7 @@ const USERS_BY_ROLE = {
 } as const;
 
 function ensureJwtKeys(): void {
-  if (process.env.JWT_PRIVATE_KEY && process.env.JWT_PUBLIC_KEY) {
+  if (process.env.JWT_SIGNING_KEY && process.env.JWT_PUBLIC_KEY) {
     return;
   }
 
@@ -44,7 +44,7 @@ function ensureJwtKeys(): void {
     modulusLength: 2048,
   });
 
-  process.env.JWT_PRIVATE_KEY = pair.privateKey.export({ type: 'pkcs1', format: 'pem' }).toString();
+  process.env.JWT_SIGNING_KEY = pair.privateKey.export({ type: 'pkcs1', format: 'pem' }).toString();
   process.env.JWT_PUBLIC_KEY = pair.publicKey.export({ type: 'pkcs1', format: 'pem' }).toString();
   process.env.JWT_EXPIRY = process.env.JWT_EXPIRY ?? '15m';
 }
@@ -72,7 +72,7 @@ function runMigrations(databaseUrl: string): void {
       stdio: 'pipe',
     });
   } catch {
-    execSync('npx prisma db push --accept-data-loss --skip-generate --config ./prisma.config.ts', {
+    execSync('npx prisma db push --accept-data-loss --config ./prisma.config.ts', {
       cwd: apiRoot,
       env: commandEnv,
       stdio: 'pipe',
