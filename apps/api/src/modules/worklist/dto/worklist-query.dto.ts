@@ -16,6 +16,10 @@ export class WorklistQueryDto {
   priority?: WorklistPriority;
 
   @IsOptional()
+  @IsString()
+  modality?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)

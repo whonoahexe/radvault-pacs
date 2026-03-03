@@ -113,6 +113,8 @@ model Instance {
   sopInstanceUid   String   @unique @map("sop_instance_uid")
   sopClassUid      String?  @map("sop_class_uid")
   instanceNumber   Int?     @map("instance_number")
+  rows             Int?     @map("rows")
+  columns          Int?     @map("columns")
   orthancInstanceId String? @map("orthanc_instance_id")
   createdAt        DateTime @default(now()) @map("created_at")
 

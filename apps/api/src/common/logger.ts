@@ -7,9 +7,7 @@ export const winstonLoggerConfig = {
       format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.ms(),
-        process.env.NODE_ENV === 'production'
-          ? winston.format.json()
-          : winston.format.combine(winston.format.colorize(), winston.format.simple()),
+        winston.format.json(),
       ),
     }),
   ],

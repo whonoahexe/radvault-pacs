@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ReportStatus, UserRole } from '@radvault/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/editor/rich-text-editor';
 import { CornerstoneViewer } from '@/components/viewer/cornerstone-viewer';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
@@ -163,21 +163,20 @@ export default function ReportPage({ params }: { params: { id: string } }) {
 
             {(
               [
-                ['Indication', 'indication'],
-                ['Technique', 'technique'],
-                ['Comparison', 'comparison'],
-                ['Findings', 'findings'],
-                ['Impression', 'impression'],
+                ['Indication', 'indication', 'Enter indication…'],
+                ['Technique', 'technique', 'Enter technique…'],
+                ['Comparison', 'comparison', 'Enter comparison…'],
+                ['Findings', 'findings', 'Enter findings…'],
+                ['Impression', 'impression', 'Enter impression…'],
               ] as const
-            ).map(([label, key]) => (
+            ).map(([label, key, placeholder]) => (
               <div key={key}>
                 <label className="mb-1 block text-sm text-slate-300">{label}</label>
-                <Textarea
+                <RichTextEditor
                   value={formState[key]}
-                  onChange={(event) =>
-                    setFormState((current) => ({ ...current, [key]: event.target.value }))
-                  }
+                  onChange={(html) => setFormState((current) => ({ ...current, [key]: html }))}
                   disabled={!canEdit || report.status !== ReportStatus.Draft}
+                  placeholder={placeholder}
                 />
               </div>
             ))}

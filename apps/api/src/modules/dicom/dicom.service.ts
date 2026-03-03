@@ -178,6 +178,8 @@ export class DicomService implements OnModuleDestroy {
     sopInstanceUid: string;
     sopClassUid: string | null;
     instanceNumber: number | null;
+    rows: number | null;
+    columns: number | null;
   }): Record<string, unknown> {
     return {
       '00080018': { vr: 'UI', Value: [row.sopInstanceUid] },
@@ -186,6 +188,8 @@ export class DicomService implements OnModuleDestroy {
         vr: 'IS',
         Value: row.instanceNumber !== null ? [String(row.instanceNumber)] : [],
       },
+      '00280010': { vr: 'US', Value: row.rows !== null ? [row.rows] : [] },
+      '00280011': { vr: 'US', Value: row.columns !== null ? [row.columns] : [] },
     };
   }
 
@@ -410,12 +414,16 @@ export class DicomService implements OnModuleDestroy {
             seriesId: series.id,
             sopClassUid: String(this.getDicomValue(dataset, '00080016') ?? '') || null,
             instanceNumber: Number(this.getDicomValue(dataset, '00200013') ?? 0) || null,
+            rows: Number(this.getDicomValue(dataset, '00280010') ?? 0) || null,
+            columns: Number(this.getDicomValue(dataset, '00280011') ?? 0) || null,
           },
           create: {
             seriesId: series.id,
             sopInstanceUid,
             sopClassUid: String(this.getDicomValue(dataset, '00080016') ?? '') || null,
             instanceNumber: Number(this.getDicomValue(dataset, '00200013') ?? 0) || null,
+            rows: Number(this.getDicomValue(dataset, '00280010') ?? 0) || null,
+            columns: Number(this.getDicomValue(dataset, '00280011') ?? 0) || null,
           },
         });
       }
@@ -470,13 +478,13 @@ export class DicomService implements OnModuleDestroy {
       where.patient = {};
       if (query.patientName) {
         where.patient.patientName = {
-          contains: query.patientName,
+          startsWith: query.patientName.replace(/\*$/, ''),
           mode: 'insensitive',
         };
       }
       if (query.patientId) {
         where.patient.patientId = {
-          contains: query.patientId,
+          startsWith: query.patientId.replace(/\*$/, ''),
           mode: 'insensitive',
         };
       }
@@ -653,6 +661,8 @@ export class DicomService implements OnModuleDestroy {
         sopInstanceUid: item.sopInstanceUid,
         sopClassUid: item.sopClassUid,
         instanceNumber: item.instanceNumber,
+        rows: item.rows,
+        columns: item.columns,
       }),
     );
   }

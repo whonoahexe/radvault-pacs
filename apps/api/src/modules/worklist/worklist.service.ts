@@ -68,6 +68,15 @@ export class WorklistService {
       where.priority = query.priority;
     }
 
+    if (query.modality) {
+      where.study = {
+        modalitiesInStudy: {
+          contains: query.modality,
+          mode: 'insensitive',
+        },
+      };
+    }
+
     const page = Math.max(query.page ?? 1, 1);
     const limit = Math.min(Math.max(query.limit ?? 20, 1), 100);
 

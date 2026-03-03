@@ -29,6 +29,7 @@ export enum ReportStatus {
 
 export enum AuditAction {
   LOGIN = 'LOGIN',
+  LOGIN_FAILED = 'LOGIN_FAILED',
   LOGOUT = 'LOGOUT',
   STUDY_VIEW = 'STUDY_VIEW',
   STUDY_UPLOAD = 'STUDY_UPLOAD',

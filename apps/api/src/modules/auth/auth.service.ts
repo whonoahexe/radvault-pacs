@@ -85,12 +85,43 @@ export class AuthService {
       },
     });
 
-    if (!user || !user.isActive) {
+    if (!user) {
+      void this.auditService.log({
+        userId: null,
+        action: AuditAction.LOGIN_FAILED,
+        resourceType: 'User',
+        resourceId: null,
+        ipAddress: this.normalizeIp(req),
+        userAgent: req.header('user-agent') ?? null,
+        details: { email: body.email, reason: 'user_not_found' },
+      });
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (!user.isActive) {
+      void this.auditService.log({
+        userId: user.id,
+        action: AuditAction.LOGIN_FAILED,
+        resourceType: 'User',
+        resourceId: user.id,
+        ipAddress: this.normalizeIp(req),
+        userAgent: req.header('user-agent') ?? null,
+        details: { email: user.email, reason: 'account_inactive' },
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const isPasswordValid = await bcrypt.compare(body.password, user.passwordHash);
     if (!isPasswordValid) {
+      void this.auditService.log({
+        userId: user.id,
+        action: AuditAction.LOGIN_FAILED,
+        resourceType: 'User',
+        resourceId: user.id,
+        ipAddress: this.normalizeIp(req),
+        userAgent: req.header('user-agent') ?? null,
+        details: { email: user.email, reason: 'bad_password' },
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 

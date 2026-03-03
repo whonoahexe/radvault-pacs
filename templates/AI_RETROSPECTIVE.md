@@ -32,11 +32,42 @@ AI accelerated delivery significantly when the requirements were explicit and th
 
 NestJS module scaffolding: with a bounded-context prompt per module, AI generated complete module structure in one pass (service/controller/dto/guard/decorator). This removed repetitive boilerplate and let effort focus on business logic and verification.
 
+**Actual prompt used (WorklistModule):**
+
+> You are implementing a NestJS module for DICOM worklist management in a radiology PACS system. The module is called WorklistModule and lives at `apps/api/src/modules/worklist/`. It needs:
+>
+> - A WorklistService with `getWorklist(query)`, `getWorklistItem(id)`, `transition(id, newStatus, userId, options)`, and `assign(id, assignTo, userId)` methods
+> - A state machine using an `allowedTransitions` map: Scheduled→InProgress, InProgress→Scheduled|Preliminary, Preliminary→Final, Final→Amended. Transitions not in the map must throw a BadRequestException.
+> - WorklistController with JWT guard and @Roles decorators: Radiologist can claim/unclaim (Scheduled↔InProgress), Admin can assign, ReferringPhysician read-only
+> - DTOs with class-validator: WorklistQueryDto (status, priority, assignedTo, page, limit), AssignWorklistDto (assignTo: UUID), TransitionWorklistDto (status: WorklistStatus enum)
+> - Status changes must call AuditService.log with WORKLIST_CLAIM, WORKLIST_UNCLAIM, or WORKLIST_ASSIGN actions
+> - source: 'controller' | 'report' option so the report workflow can drive Preliminary→Final without going through the controller guard
+> - No direct imports from other feature modules — only inject shared PrismaService, AuditService
+>
+> Return all files for this module as complete TypeScript.
+
+**What was produced:** Full module scaffold — service, controller, 3 DTOs, module definition — in one pass. Used with two edits: added the `source: 'controller' | 'report'` field to `TransitionOptions` and added Prisma `TransactionClient` injection for the report workflow cross-module call.
+
 ### Example 2
 
 Prisma schema + workflow/state logic: AI produced the full 10-model schema correctly on the first try and implemented state machine logic for worklist transitions and report lifecycle with an `allowedTransitions` map, including separation between controller workflow and report workflow.
 
 Cornerstone3D integration also worked well because Context7 was used first to resolve current loader APIs, which prevented implementation against deprecated cornerstoneWADOImageLoader patterns.
+
+**Actual prompt used (Cornerstone3D viewer hook):**
+
+> Using the Context7-resolved Cornerstone3D docs for `@cornerstonejs/core` and `@cornerstonejs/dicom-image-loader` (v2.x), implement a React hook `useCornerstoneViewer(containerRef, wadoRsRoot, studyInstanceUid)` for the RadVault web viewer. Requirements:
+>
+> 1. Initialize Cornerstone3D with a WebGL2 RenderingEngine (id: 'radvault-engine')
+> 2. Register the WADO-RS image loader using `@cornerstonejs/dicom-image-loader`. Attach an `imageLoadImageRetrieveManager` that injects `Authorization: Bearer <token>` using the access token from the Zustand auth store (`useAuthStore.getState().accessToken`)
+> 3. Create a STACK viewport bound to the containerRef element
+> 4. Derive imageIds from the WADO-RS root using the pattern: `wadors:<wadoRsRoot>/studies/<studyInstanceUid>/series/<seriesInstanceUid>/instances/<sopInstanceUid>/frames/1`
+> 5. Load the stack into the viewport and set the initial W/L to default
+> 6. Return `{ toolGroup, viewport, isLoading, error }`
+> 7. Clean up the rendering engine on unmount
+>    Do NOT use deprecated `cornerstoneWADOImageLoader` patterns — use `@cornerstonejs/dicom-image-loader` exclusively.
+
+**What was produced:** Hook implementation with correct v2.x APIs. Used as-is after adding explicit TypeScript type annotations for `viewport as Types.IStackViewport` to satisfy the tsconfig `strict` setting.
 
 Test generation was high leverage: AI generated 41 unit tests that covered state-machine paths and authentication edge cases.
 
@@ -49,6 +80,28 @@ AI output was occasionally overly permissive or incomplete in security-sensitive
 ### Example 1
 
 Orthanc authorization callback: initial AI stub returned `granted: true` unconditionally. This required manual correction to enforce role-based decisions and the Technologist GET restriction.
+
+**Initial prompt (caused the problem):**
+
+> Implement the Orthanc authorization callback endpoint `POST /api/internal/orthanc-auth` in NestJS. Orthanc calls this endpoint before every WADO-RS request. Return JSON with `granted: true` if the request should be allowed.
+
+**What was produced:** A controller handler that returned `{ granted: true }` for every request with no JWT validation, no role check, and no handling of missing tokens.
+
+**What the prompt was missing:** No explicit deny-by-default requirement, no instruction to extract and verify the Bearer token from the Orthanc request body, and no role-based access specification. The prompt described the callback mechanism but not the authorization logic. Because the acceptance criteria were vague on _how_ to decide `granted`, the model defaulted to permissive.
+
+**Fix prompt (explicit constraint added):**
+
+> Revise `POST /api/internal/orthanc-auth`. Requirements:
+>
+> 1. Extract the Bearer JWT from the `token` field in the Orthanc authorization request body
+> 2. Deny by default — return `{ granted: false }` for any request with an unverifiable, expired, or missing token
+> 3. Radiologist and Admin roles: grant both READ (GET/HEAD) and WRITE (POST/PUT/DELETE) access
+> 4. Technologist role: grant READ (GET/HEAD) only; deny WRITE
+> 5. ReferringPhysician role: deny all WADO-RS access (they access studies through the NestJS API layer, not direct Orthanc)
+> 6. Never throw HTTP exceptions from this handler — catch all errors and return `{ granted: false }` to prevent Orthanc from treating a 500 as a grant
+> 7. The handler must live in InternalModule which is excluded from the global JwtAuthGuard
+
+**Result after fix:** Role-aware handler with explicit deny-by-default, Technologist HTTP method restriction, and a catch-all error wrapper — matching the authorization model described in the architecture document.
 
 ### Example 2
 

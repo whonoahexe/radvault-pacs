@@ -16,6 +16,8 @@ describe('@group integration Report lifecycle API', () => {
   let accessToken = '';
   let reportId = '';
   let studyId = '';
+  let technologistToken = '';
+  let referringPhysicianToken = '';
 
   beforeAll(async () => {
     const bootstrap = await bootstrapIntegrationApp();
@@ -64,6 +66,26 @@ describe('@group integration Report lifecycle API', () => {
       .expect(200);
 
     accessToken = login.body.accessToken;
+
+    const techLogin = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({
+        email: usersByRole.technologist.email,
+        password: usersByRole.technologist.password,
+      })
+      .expect(200);
+
+    technologistToken = techLogin.body.accessToken;
+
+    const refLogin = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({
+        email: usersByRole.referringPhysician.email,
+        password: usersByRole.referringPhysician.password,
+      })
+      .expect(200);
+
+    referringPhysicianToken = refLogin.body.accessToken;
   });
 
   afterAll(async () => {
@@ -152,5 +174,89 @@ describe('@group integration Report lifecycle API', () => {
     expect(list.body).toHaveLength(2);
     const statuses = list.body.map((item: { status: string }) => item.status).sort();
     expect(statuses).toEqual([ReportStatus.Amended, ReportStatus.Final].sort());
+  });
+
+  // ── RBAC enforcement ──────────────────────────────────────────────────────
+
+  it('Technologist: POST /api/reports -> 403 (role not permitted)', async () => {
+    await request(app.getHttpServer())
+      .post('/api/reports')
+      .set('Authorization', `Bearer ${technologistToken}`)
+      .send({ studyId, findings: 'findings', impression: 'impression' })
+      .expect(403);
+  });
+
+  it('Technologist: PUT /api/reports/:id -> 403 (role not permitted)', async () => {
+    await request(app.getHttpServer())
+      .put(`/api/reports/${reportId}`)
+      .set('Authorization', `Bearer ${technologistToken}`)
+      .send({ findings: 'should be blocked' })
+      .expect(403);
+  });
+
+  it('Technologist: POST /api/reports/:id/sign -> 403 (role not permitted)', async () => {
+    await request(app.getHttpServer())
+      .post(`/api/reports/${reportId}/sign`)
+      .set('Authorization', `Bearer ${technologistToken}`)
+      .send({ status: ReportStatus.Preliminary })
+      .expect(403);
+  });
+
+  it('ReferringPhysician: POST /api/reports -> 403 (role not permitted)', async () => {
+    await request(app.getHttpServer())
+      .post('/api/reports')
+      .set('Authorization', `Bearer ${referringPhysicianToken}`)
+      .send({ studyId, findings: 'findings', impression: 'impression' })
+      .expect(403);
+  });
+
+  it('ReferringPhysician: PUT /api/reports/:id -> 403 (role not permitted)', async () => {
+    await request(app.getHttpServer())
+      .put(`/api/reports/${reportId}`)
+      .set('Authorization', `Bearer ${referringPhysicianToken}`)
+      .send({ findings: 'should be blocked' })
+      .expect(403);
+  });
+
+  it('ReferringPhysician: GET /api/reports?studyId=... for own patient -> 200 with results', async () => {
+    // The study was created with referringPhysicianName matching the referring physician user
+    const list = await request(app.getHttpServer())
+      .get(`/api/reports?studyId=${encodeURIComponent(studyId)}`)
+      .set('Authorization', `Bearer ${referringPhysicianToken}`)
+      .expect(200);
+
+    expect(Array.isArray(list.body)).toBe(true);
+    expect(list.body.length).toBeGreaterThan(0);
+  });
+
+  it('ReferringPhysician: GET /api/reports?studyId=... for unrelated patient -> 404 or empty', async () => {
+    // Create a study with a different referringPhysicianName so the ref physician is not scoped to it
+    const otherPatient = await prisma.patient.create({
+      data: {
+        patientId: `P-OTHER-${Date.now()}`,
+        patientName: 'Other Patient',
+      },
+    });
+    const otherStudy = await prisma.study.create({
+      data: {
+        patientId: otherPatient.id,
+        studyInstanceUid: `1.2.840.99999.${Date.now()}`,
+        studyDescription: 'Other Study',
+        referringPhysicianName: 'Dr. Someone Else',
+      },
+    });
+
+    // Create a report for the other study as the radiologist
+    const otherReport = await request(app.getHttpServer())
+      .post('/api/reports')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ studyId: otherStudy.id, findings: 'Other findings', impression: 'Other impression' })
+      .expect(201);
+
+    // Referring physician should be scoped out — the service throws NotFoundException
+    await request(app.getHttpServer())
+      .get(`/api/reports/${otherReport.body.id}`)
+      .set('Authorization', `Bearer ${referringPhysicianToken}`)
+      .expect(404);
   });
 });
