@@ -97,6 +97,9 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
 
+      - name: Prisma generate
+        run: npx prisma generate --config apps/api/prisma.config.ts
+
       - name: Run tests
         run: npx turbo run test
 
@@ -146,6 +149,9 @@ jobs:
         run: npx prisma migrate deploy --config apps/api/prisma.config.ts
         env:
           DATABASE_URL: postgresql://radvault:radvault@localhost:5432/radvault_test
+
+      - name: Prisma generate
+        run: npx prisma generate --config apps/api/prisma.config.ts
 
       - name: Run integration tests
         run: cd apps/api && npx jest --testPathPattern=test --forceExit --runInBand
