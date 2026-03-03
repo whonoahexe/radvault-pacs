@@ -77,7 +77,7 @@ export default function StudiesPage() {
             | { Value?: Array<{ Alphabetic?: string } | string> }
             | undefined;
           const first = tag?.Value?.[0];
-          return (typeof first === 'string' ? first : first?.Alphabetic ?? '') .toLowerCase();
+          return (typeof first === 'string' ? first : (first?.Alphabetic ?? '')).toLowerCase();
         };
         mapped.sort((a, b) => getName(a).localeCompare(getName(b)));
       }

@@ -219,10 +219,7 @@ async function orthancStudyExists(studyInstanceUid: string): Promise<boolean> {
 
 async function uploadDicomToOrthanc(filePath: string, fileBuffer: Buffer): Promise<void> {
   const boundary = `seed-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  const header = Buffer.from(
-    `--${boundary}\r\nContent-Type: application/dicom\r\n\r\n`,
-    'utf8',
-  );
+  const header = Buffer.from(`--${boundary}\r\nContent-Type: application/dicom\r\n\r\n`, 'utf8');
   const footer = Buffer.from(`\r\n--${boundary}--\r\n`, 'utf8');
   const body = Buffer.concat([header, fileBuffer, footer]);
 
@@ -238,7 +235,9 @@ async function uploadDicomToOrthanc(filePath: string, fileBuffer: Buffer): Promi
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Orthanc STOW-RS upload failed for ${filePath}: ${response.status} ${errorText}`);
+    throw new Error(
+      `Orthanc STOW-RS upload failed for ${filePath}: ${response.status} ${errorText}`,
+    );
   }
 }
 
@@ -609,9 +608,7 @@ async function seedSyntheticPatients(): Promise<void> {
     });
 
     const assignedTo =
-      entry.worklist.status === WorklistStatus.Preliminary && radiologist
-        ? radiologist.id
-        : null;
+      entry.worklist.status === WorklistStatus.Preliminary && radiologist ? radiologist.id : null;
 
     await prisma.worklistItem.upsert({
       where: { studyId: study.id },

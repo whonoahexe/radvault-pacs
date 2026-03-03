@@ -75,7 +75,10 @@ describe('ReportService', () => {
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(tx.report.create).toHaveBeenCalledTimes(1);
     expect(tx.reportVersion.create).toHaveBeenCalledTimes(1);
-    expect(auditService.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'REPORT_CREATE' }), tx);
+    expect(auditService.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'REPORT_CREATE' }),
+      tx,
+    );
   });
 
   it('create() rejects when study does not exist', async () => {
@@ -99,9 +102,9 @@ describe('ReportService', () => {
       status: PrismaReportStatus.Final,
     });
 
-    await expect(service.update('report-1', { findings: 'updated' }, user, req)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      service.update('report-1', { findings: 'updated' }, user, req),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('update() rejects if authorId !== user.sub', async () => {
@@ -111,9 +114,9 @@ describe('ReportService', () => {
       status: PrismaReportStatus.Draft,
     });
 
-    await expect(service.update('report-1', { findings: 'updated' }, user, req)).rejects.toBeInstanceOf(
-      ForbiddenException,
-    );
+    await expect(
+      service.update('report-1', { findings: 'updated' }, user, req),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('update() succeeds from Draft and records new version', async () => {
@@ -235,14 +238,19 @@ describe('ReportService', () => {
       },
     });
 
-    await expect(service.sign('report-1', { status: ReportStatus.Final }, user, req)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      service.sign('report-1', { status: ReportStatus.Final }, user, req),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('sign() rejects unsupported sign status', async () => {
     await expect(
-      service.sign('report-1', { status: ReportStatus.Amended as ReportStatus.Preliminary }, user, req),
+      service.sign(
+        'report-1',
+        { status: ReportStatus.Amended as ReportStatus.Preliminary },
+        user,
+        req,
+      ),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
@@ -271,9 +279,9 @@ describe('ReportService', () => {
       },
     });
 
-    await expect(service.amend('report-1', { findings: 'amended' }, user, req)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      service.amend('report-1', { findings: 'amended' }, user, req),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('amend() creates new report record and does not mutate original', async () => {

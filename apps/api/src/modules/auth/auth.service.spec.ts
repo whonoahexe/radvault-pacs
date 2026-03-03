@@ -158,7 +158,9 @@ describe('AuthService', () => {
   it('refresh() with unknown token throws UnauthorizedException', async () => {
     prisma.refreshToken.findUnique.mockResolvedValue(null);
 
-    await expect(service.refresh('missing-token', req)).rejects.toBeInstanceOf(UnauthorizedException);
+    await expect(service.refresh('missing-token', req)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
   });
 
   it('refresh() with inactive user throws UnauthorizedException', async () => {
@@ -196,7 +198,9 @@ describe('AuthService', () => {
       },
     });
 
-    await expect(service.refresh('refresh-token', req)).rejects.toBeInstanceOf(UnauthorizedException);
+    await expect(service.refresh('refresh-token', req)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
     expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
       where: {
         familyId: 'family-1',
@@ -223,7 +227,9 @@ describe('AuthService', () => {
       },
     });
 
-    await expect(service.refresh('refresh-token', req)).rejects.toBeInstanceOf(UnauthorizedException);
+    await expect(service.refresh('refresh-token', req)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
     expect(prisma.refreshToken.update).toHaveBeenCalledWith({
       where: { id: 'rt-1' },
       data: { isRevoked: true },

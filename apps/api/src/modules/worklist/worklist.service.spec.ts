@@ -149,9 +149,9 @@ describe('WorklistService', () => {
   it('Item not found throws NotFoundException', async () => {
     prisma.worklistItem.findUnique.mockResolvedValue(null);
 
-    await expect(service.transition('missing', WorklistStatus.InProgress, 'user-1')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      service.transition('missing', WorklistStatus.InProgress, 'user-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('getWorklist() sorts by priority then scheduledAt and returns pagination', async () => {

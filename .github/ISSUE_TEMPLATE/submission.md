@@ -1,9 +1,9 @@
 ---
 name: Assessment Submission
 about: Submit your RadVault PACS assessment for review
-title: "Noah — RadVault PACS"
+title: 'Noah — RadVault PACS'
 labels: submission
-assignees: "whonoahexe"
+assignees: 'whonoahexe'
 ---
 
 ## Submission Details

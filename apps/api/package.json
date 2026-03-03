@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "prebuild": "prisma generate --config ./prisma.config.ts",
+    "prelint": "npm run -w @radvault/types build && prisma generate --config ./prisma.config.ts",
+    "pretypecheck": "npm run -w @radvault/types build && prisma generate --config ./prisma.config.ts",
     "build": "nest build",
     "dev": "nest start --watch",
     "start": "node dist/main",

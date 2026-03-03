@@ -9,10 +9,10 @@
 
 ## Tools Used
 
-| Tool | Version | How You Used It |
-|---|---|---|
-| Claude (Sonnet 4.5 via GitHub Copilot) | Sonnet 4.5 | Primary coding assistant for implementation, refactors, and test generation in iterative prompt loops |
-| Context7 MCP | Latest docs resolution at usage time | Proactively resolved current library APIs before each integration to avoid stale examples and API drift |
+| Tool                                   | Version                              | How You Used It                                                                                         |
+| -------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| Claude (Sonnet 4.5 via GitHub Copilot) | Sonnet 4.5                           | Primary coding assistant for implementation, refactors, and test generation in iterative prompt loops   |
+| Context7 MCP                           | Latest docs resolution at usage time | Proactively resolved current library APIs before each integration to avoid stale examples and API drift |
 
 ---
 
@@ -75,11 +75,11 @@ AI most accelerated scaffolding, schema authoring, and unit test generation. It 
 
 Step-boundary reviews reduced rework: each phase was validated before moving forward, which prevented architectural drift and made issue localization faster.
 
-| Category | Estimated % of Final Code |
-|---|---|
-| AI-generated, used as-is | ~45% |
-| AI-generated, human-edited | ~40% |
-| Human-written from scratch | ~15% |
+| Category                   | Estimated % of Final Code |
+| -------------------------- | ------------------------- |
+| AI-generated, used as-is   | ~45%                      |
+| AI-generated, human-edited | ~40%                      |
+| Human-written from scratch | ~15%                      |
 
 ---
 

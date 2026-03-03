@@ -8,7 +8,7 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "paths": {
-      "@radvault/types": ["../../packages/types/src"]
+      "@radvault/types": ["packages/types/dist"]
     }
   },
   "include": ["src"]

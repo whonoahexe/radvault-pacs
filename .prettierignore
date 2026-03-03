@@ -1,0 +1,27 @@
+node_modules
+**/node_modules
+
+# build output
+**/dist
+**/.next
+**/coverage
+
+# turbo/cache
+.turbo
+
+# lockfiles and generated snapshots
+package-lock.json
+scripts/e2e-last.txt
+scripts/check-submission.sh
+
+# project docs and scoring content
+docs/**
+scoring/**
+
+# non-source seed data
+scripts/seed-data/**
+
+# infra/build artifacts
+**/.terraform
+**/terraform.tfstate
+**/terraform.tfstate.*

@@ -34,11 +34,7 @@ const encodedHeader = base64url(JSON.stringify(header));
 const encodedPayload = base64url(JSON.stringify(payload));
 const data = `${encodedHeader}.${encodedPayload}`;
 
-const signature = crypto
-  .createSign('RSA-SHA256')
-  .update(data)
-  .end()
-  .sign(privateKey);
+const signature = crypto.createSign('RSA-SHA256').update(data).end().sign(privateKey);
 
 const token = `${data}.${base64url(signature)}`;
 
