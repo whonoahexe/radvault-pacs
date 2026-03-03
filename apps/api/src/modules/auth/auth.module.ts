@@ -23,7 +23,8 @@ function normalizePem(value: string): string {
       publicKey: normalizePem(process.env.JWT_PUBLIC_KEY ?? ''),
       signOptions: {
         algorithm: 'RS256',
-        expiresIn: process.env.JWT_EXPIRY ?? '15m',
+        expiresIn: (process.env.JWT_EXPIRY ??
+          '15m') as `${number}${'ms' | 's' | 'm' | 'h' | 'd' | 'w' | 'y'}`,
       },
       verifyOptions: {
         algorithms: ['RS256'],

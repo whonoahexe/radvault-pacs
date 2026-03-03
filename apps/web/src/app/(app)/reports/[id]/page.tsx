@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { use, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ReportStatus, UserRole } from '@radvault/types';
 import { Badge } from '@/components/ui/badge';
@@ -18,14 +18,15 @@ function dateOrDash(value: string | null | undefined): string {
   return new Date(value).toISOString().slice(0, 10);
 }
 
-export default function ReportPage({ params }: { params: { id: string } }) {
+export default function ReportPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
   const canEdit = user?.role === UserRole.Radiologist;
 
   const reportQuery = useQuery({
-    queryKey: ['report', params.id],
-    queryFn: () => api.reports.get(params.id),
+    queryKey: ['report', id],
+    queryFn: () => api.reports.get(id),
   });
 
   const worklistContextQuery = useQuery({
@@ -64,7 +65,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
   }, [reportQuery.data]);
 
   const updateMutation = useMutation({
-    mutationFn: () => api.reports.update(params.id, formState),
+    mutationFn: () => api.reports.update(id, formState),
     onSuccess: async (updated) => {
       const snapshot = {
         indication: updated.indication ?? '',
@@ -75,27 +76,27 @@ export default function ReportPage({ params }: { params: { id: string } }) {
       };
 
       setLastSavedSnapshot(JSON.stringify(snapshot));
-      await queryClient.invalidateQueries({ queryKey: ['report', params.id] });
+      await queryClient.invalidateQueries({ queryKey: ['report', id] });
     },
   });
 
   const signMutation = useMutation({
     mutationFn: (status: ReportStatus.Preliminary | ReportStatus.Final) =>
-      api.reports.sign(params.id, status),
+      api.reports.sign(id, status),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['report', params.id] });
+      await queryClient.invalidateQueries({ queryKey: ['report', id] });
       await queryClient.invalidateQueries({ queryKey: ['worklist'] });
     },
   });
 
   const amendMutation = useMutation({
     mutationFn: () =>
-      api.reports.amend(params.id, {
+      api.reports.amend(id, {
         findings: formState.findings,
         impression: formState.impression,
       }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['report', params.id] });
+      await queryClient.invalidateQueries({ queryKey: ['report', id] });
       await queryClient.invalidateQueries({ queryKey: ['worklist'] });
     },
   });

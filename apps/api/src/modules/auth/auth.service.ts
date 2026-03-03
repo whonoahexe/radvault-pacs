@@ -47,7 +47,7 @@ export class AuthService {
     return this.jwtService.signAsync(payload, {
       algorithm: 'RS256',
       privateKey: (process.env.JWT_SIGNING_KEY ?? '').replace(/\\n/g, '\n'),
-      expiresIn: this.accessTokenExpiry,
+      expiresIn: this.accessTokenExpiry as `${number}${'ms' | 's' | 'm' | 'h' | 'd' | 'w' | 'y'}`,
     });
   }
 

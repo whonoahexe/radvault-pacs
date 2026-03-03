@@ -22,18 +22,15 @@ export class EventsController {
    * Pass the JWT token as the `token` query parameter when connecting from the UI.
    */
   @Sse('ingest')
-  @Roles(
-    UserRole.Admin,
-    UserRole.Radiologist,
-    UserRole.Technologist,
-    UserRole.ReferringPhysician,
-  )
+  @Roles(UserRole.Admin, UserRole.Radiologist, UserRole.Technologist, UserRole.ReferringPhysician)
   studyIngested(): Observable<MessageEvent> {
     return this.eventsService.getStudyIngestedStream().pipe(
-      map((event: StudyIngestedEvent): MessageEvent => ({
-        data: event,
-        type: 'study.ingested',
-      })),
+      map(
+        (event: StudyIngestedEvent): MessageEvent => ({
+          data: event,
+          type: 'study.ingested',
+        }),
+      ),
     );
   }
 }
