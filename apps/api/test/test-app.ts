@@ -65,19 +65,11 @@ function runMigrations(databaseUrl: string): void {
     DATABASE_URL: databaseUrl,
   };
 
-  try {
-    execSync('npx prisma migrate deploy --config ./prisma.config.ts', {
-      cwd: apiRoot,
-      env: commandEnv,
-      stdio: 'pipe',
-    });
-  } catch {
-    execSync('npx prisma db push --accept-data-loss --config ./prisma.config.ts', {
-      cwd: apiRoot,
-      env: commandEnv,
-      stdio: 'pipe',
-    });
-  }
+  execSync('npx prisma db push --accept-data-loss --config ./prisma.config.ts', {
+    cwd: apiRoot,
+    env: commandEnv,
+    stdio: 'pipe',
+  });
 }
 
 async function resetAndSeedMinimalData(prisma: PrismaClient): Promise<void> {

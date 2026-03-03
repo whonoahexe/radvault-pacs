@@ -16,6 +16,9 @@ const config: Config = {
       },
     ],
   },
+  moduleNameMapper: {
+    '^@radvault/types$': '<rootDir>/../../packages/types/src/index.ts',
+  },
   testMatch: isIntegrationRun
     ? ['<rootDir>/test/**/*.integration.spec.ts']
     : ['<rootDir>/src/**/*.spec.ts'],

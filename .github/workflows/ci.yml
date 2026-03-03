@@ -146,12 +146,12 @@ jobs:
         run: npm ci
 
       - name: Prisma push schema
-        run: npx prisma db push --config apps/api/prisma.config.ts --accept-data-loss
+        run: cd apps/api && npx prisma db push --accept-data-loss
         env:
           DATABASE_URL: postgresql://radvault:radvault@localhost:5432/radvault_test
 
       - name: Prisma generate
-        run: npx prisma generate --config apps/api/prisma.config.ts
+        run: cd apps/api && npx prisma generate
 
       - name: Run integration tests
         run: cd apps/api && npx jest --testPathPattern=test --forceExit --runInBand
