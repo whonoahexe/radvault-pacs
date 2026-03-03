@@ -153,6 +153,9 @@ jobs:
       - name: Prisma generate
         run: npx prisma generate --config apps/api/prisma.config.ts
 
+      - name: Build @radvault/types
+        run: npm run build --workspace=@radvault/types
+
       - name: Run integration tests
         run: cd apps/api && npx jest --testPathPattern=test --forceExit --runInBand
         env:
