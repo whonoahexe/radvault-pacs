@@ -8,7 +8,13 @@ import { api, type DicomStudy, type WorklistItemWithStudy } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectItem } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -18,6 +24,18 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Upload,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  ImageIcon,
+  Eye,
+  AlertCircle,
+  Inbox,
+} from 'lucide-react';
 
 const MODALITIES = ['', 'CT', 'MR', 'US', 'CR', 'DX', 'MG', 'NM', 'PT'] as const;
 
@@ -31,6 +49,54 @@ function formatDicomDate(date: string | null | undefined): string {
   }
 
   return `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`;
+}
+
+function modalityColor(mod: string | null | undefined): string {
+  switch (mod) {
+    case 'CT': return 'bg-blue-500/15 text-blue-400 border-blue-500/30';
+    case 'MR': return 'bg-violet-500/15 text-violet-400 border-violet-500/30';
+    case 'US': return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
+    case 'CR':
+    case 'DX': return 'bg-amber-500/15 text-amber-400 border-amber-500/30';
+    case 'MG': return 'bg-pink-500/15 text-pink-400 border-pink-500/30';
+    case 'NM':
+    case 'PT': return 'bg-orange-500/15 text-orange-400 border-orange-500/30';
+    default: return 'bg-muted text-muted-foreground border-border';
+  }
+}
+
+function statusColor(status: string): string {
+  switch (status) {
+    case WorklistStatus.Final: return 'bg-success/15 text-success border-success/30';
+    case WorklistStatus.Amended: return 'bg-success/15 text-success border-success/30';
+    case WorklistStatus.Preliminary: return 'bg-warning/15 text-warning border-warning/30';
+    case WorklistStatus.InProgress: return 'bg-info/15 text-info border-info/30';
+    case WorklistStatus.Scheduled: return 'bg-muted text-muted-foreground border-border';
+    default: return 'bg-muted text-muted-foreground border-border';
+  }
+}
+
+function TableSkeleton() {
+  return (
+    <Card className="border-border/50 bg-card/60 backdrop-blur-xl">
+      <div className="p-1">
+        <div className="space-y-0">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 border-b border-border/50 px-4 py-3 last:border-0">
+              <Skeleton className="h-10 w-10 rounded-md" />
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-5 w-12 rounded-full" />
+              <Skeleton className="h-4 w-40 flex-1" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-8 w-16 rounded-md" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </Card>
+  );
 }
 
 export default function StudiesPage() {
@@ -115,9 +181,15 @@ export default function StudiesPage() {
   const studies = studiesQuery.data ?? [];
 
   return (
-    <main className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-slate-100">Studies</h1>
+    <div className="space-y-6 animate-in-fade">
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Studies</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Browse and manage DICOM imaging studies
+          </p>
+        </div>
         {canUpload ? (
           <>
             <input
@@ -137,99 +209,148 @@ export default function StudiesPage() {
             <Button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadMutation.isPending}
+              className="gap-2"
             >
-              {uploadMutation.isPending ? 'Uploading...' : 'Upload DICOM'}
+              <Upload className="h-4 w-4" />
+              {uploadMutation.isPending ? 'Uploading…' : 'Upload DICOM'}
             </Button>
           </>
         ) : null}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-6">
-        <Input
-          placeholder="Patient name"
-          value={patientName}
-          onChange={(event) => {
-            setPatientName(event.target.value);
-            setPage(1);
-          }}
-        />
-        <Input
-          type="date"
-          value={dateFrom}
-          onChange={(event) => {
-            setDateFrom(event.target.value);
-            setPage(1);
-          }}
-        />
-        <Input
-          type="date"
-          value={dateTo}
-          onChange={(event) => {
-            setDateTo(event.target.value);
-            setPage(1);
-          }}
-        />
-        <Select
-          value={modality}
-          onValueChange={(value) => {
-            setModality(value);
-            setPage(1);
-          }}
-        >
-          {MODALITIES.map((item) => (
-            <SelectItem key={item || 'all'} value={item}>
-              {item || 'All modalities'}
-            </SelectItem>
-          ))}
-        </Select>
-        <Select
-          value={sortBy}
-          onValueChange={(value) => {
-            setSortBy(value as 'date_desc' | 'date_asc' | 'name_asc');
-            setPage(1);
-          }}
-        >
-          <SelectItem value="date_desc">Date (newest)</SelectItem>
-          <SelectItem value="date_asc">Date (oldest)</SelectItem>
-          <SelectItem value="name_asc">Patient (A-Z)</SelectItem>
-        </Select>
-        <Select
-          value={String(limit)}
-          onValueChange={(value) => {
-            setLimit(Number(value));
-            setPage(1);
-          }}
-        >
-          <SelectItem value="10">10 / page</SelectItem>
-          <SelectItem value="20">20 / page</SelectItem>
-          <SelectItem value="50">50 / page</SelectItem>
-        </Select>
-      </div>
+      {/* Filter Bar */}
+      <Card className="border-border/50 bg-card/60 p-4 backdrop-blur-xl">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-6">
+          <div className="relative lg:col-span-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Patient name…"
+              className="pl-9"
+              value={patientName}
+              onChange={(event) => {
+                setPatientName(event.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={(event) => {
+              setDateFrom(event.target.value);
+              setPage(1);
+            }}
+          />
+          <Input
+            type="date"
+            value={dateTo}
+            onChange={(event) => {
+              setDateTo(event.target.value);
+              setPage(1);
+            }}
+          />
+          <Select
+            value={modality}
+            onValueChange={(value) => {
+              setModality(value === '__all__' ? '' : value);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="All modalities" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">All modalities</SelectItem>
+              {MODALITIES.filter(Boolean).map((item) => (
+                <SelectItem key={item} value={item}>
+                  {item}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={sortBy}
+            onValueChange={(value) => {
+              setSortBy(value as 'date_desc' | 'date_asc' | 'name_asc');
+              setPage(1);
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date_desc">Date (newest)</SelectItem>
+              <SelectItem value="date_asc">Date (oldest)</SelectItem>
+              <SelectItem value="name_asc">Patient (A-Z)</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            value={String(limit)}
+            onValueChange={(value) => {
+              setLimit(Number(value));
+              setPage(1);
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10 / page</SelectItem>
+              <SelectItem value="20">20 / page</SelectItem>
+              <SelectItem value="50">50 / page</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </Card>
 
-      {uploadError ? <p className="text-sm text-red-300">{uploadError}</p> : null}
+      {uploadError ? (
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {uploadError}
+        </div>
+      ) : null}
 
-      {studiesQuery.isLoading ? <p className="text-slate-300">Loading studies...</p> : null}
+      {/* Loading skeleton */}
+      {studiesQuery.isLoading ? <TableSkeleton /> : null}
+
+      {/* Error state */}
       {studiesQuery.error ? (
-        <p className="text-slate-300">Unable to load studies right now.</p>
+        <Card className="border-border/50 bg-card/60 p-12 text-center backdrop-blur-xl">
+          <AlertCircle className="mx-auto h-10 w-10 text-muted-foreground/50" />
+          <p className="mt-3 text-sm text-muted-foreground">Unable to load studies right now.</p>
+          <Button variant="outline" size="sm" className="mt-4" onClick={() => studiesQuery.refetch()}>
+            Retry
+          </Button>
+        </Card>
       ) : null}
 
+      {/* Empty state */}
       {!studiesQuery.isLoading && !studiesQuery.error && studies.length === 0 ? (
-        <p className="text-slate-300">No studies found for the selected filters.</p>
+        <Card className="border-border/50 bg-card/60 p-12 text-center backdrop-blur-xl">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+            <Inbox className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <p className="mt-4 text-sm font-medium">No studies found</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Try adjusting your filters or upload a new DICOM file.
+          </p>
+        </Card>
       ) : null}
 
+      {/* Data Table */}
       {studies.length > 0 ? (
-        <div className="overflow-x-auto rounded-md border border-slate-800">
+        <Card className="overflow-hidden border-border/50 bg-card/60 backdrop-blur-xl">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Thumbnail</TableHead>
+              <TableRow className="border-border/50 hover:bg-transparent">
+                <TableHead className="w-[60px]">Thumb</TableHead>
                 <TableHead>Patient Name</TableHead>
                 <TableHead>Study Date</TableHead>
                 <TableHead>Modality</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Accession</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead className="w-[80px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -249,7 +370,7 @@ export default function StudiesPage() {
                 return (
                   <TableRow
                     key={study.studyInstanceUid}
-                    className="cursor-pointer"
+                    className="group cursor-pointer border-border/30 transition-colors hover:bg-muted/50"
                     onClick={() => router.push(`/studies/${study.studyInstanceUid}`)}
                   >
                     <TableCell>
@@ -257,32 +378,49 @@ export default function StudiesPage() {
                         <img
                           src={study.thumbnailPath}
                           alt="Study thumbnail"
-                          className="h-10 w-10 rounded object-cover"
+                          className="h-10 w-10 rounded-md border border-border/50 object-cover"
                         />
                       ) : (
-                        <div className="grid h-10 w-10 place-items-center rounded border border-slate-700 text-xs text-slate-400">
-                          N/A
+                        <div className="flex h-10 w-10 items-center justify-center rounded-md border border-border/50 bg-muted/50">
+                          <ImageIcon className="h-4 w-4 text-muted-foreground" />
                         </div>
                       )}
                     </TableCell>
-                    <TableCell>{patientNameValue}</TableCell>
-                    <TableCell>{formatDicomDate(study.studyDate)}</TableCell>
-                    <TableCell>{study.modalitiesInStudy ?? '-'}</TableCell>
-                    <TableCell>{study.studyDescription ?? '-'}</TableCell>
-                    <TableCell>{study.accessionNumber ?? '-'}</TableCell>
+                    <TableCell className="font-medium">{patientNameValue}</TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {formatDicomDate(study.studyDate)}
+                    </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{status}</Badge>
+                      <Badge
+                        variant="outline"
+                        className={modalityColor(study.modalitiesInStudy)}
+                      >
+                        {study.modalitiesInStudy ?? '-'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                      {study.studyDescription ?? '-'}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {study.accessionNumber ?? '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={statusColor(status)}>
+                        <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-current" />
+                        {status}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 opacity-0 transition-opacity group-hover:opacity-100"
                         onClick={(event) => {
                           event.stopPropagation();
                           router.push(`/studies/${study.studyInstanceUid}`);
                         }}
                       >
-                        Open
+                        <Eye className="h-4 w-4" />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -290,26 +428,37 @@ export default function StudiesPage() {
               })}
             </TableBody>
           </Table>
-        </div>
+        </Card>
       ) : null}
 
-      <div className="flex items-center justify-end gap-2">
-        <Button
-          variant="outline"
-          onClick={() => setPage((current) => Math.max(1, current - 1))}
-          disabled={page === 1}
-        >
-          Previous
-        </Button>
-        <span className="text-sm text-slate-300">Page {page}</span>
-        <Button
-          variant="outline"
-          onClick={() => setPage((current) => current + 1)}
-          disabled={studies.length < limit}
-        >
-          Next
-        </Button>
+      {/* Pagination */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Page {page}{studies.length > 0 ? ` · ${studies.length} results` : ''}
+        </p>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            disabled={page === 1}
+            className="gap-1"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((current) => current + 1)}
+            disabled={studies.length < limit}
+            className="gap-1"
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

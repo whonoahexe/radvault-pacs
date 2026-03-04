@@ -5,7 +5,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuditAction, UserRole } from '@radvault/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectItem } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -15,8 +22,40 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
+import {
+  ShieldCheck,
+  UserPlus,
+  Users,
+  ScrollText,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Inbox,
+  Mail,
+  Lock,
+  UserIcon,
+  ShieldAlert,
+} from 'lucide-react';
+
+function roleConfig(role: string) {
+  switch (role) {
+    case UserRole.Admin:
+      return 'bg-destructive/15 text-destructive border-destructive/30';
+    case UserRole.Radiologist:
+      return 'bg-primary/15 text-primary border-primary/30';
+    case UserRole.Technologist:
+      return 'bg-info/15 text-info border-info/30';
+    case UserRole.ReferringPhysician:
+      return 'bg-success/15 text-success border-success/30';
+    default:
+      return 'bg-muted text-muted-foreground border-border';
+  }
+}
 
 export default function AdminPage() {
   const queryClient = useQueryClient();
@@ -64,147 +103,294 @@ export default function AdminPage() {
   });
 
   if (user?.role !== UserRole.Admin) {
-    return <p className="text-slate-300">Administrator access is required for this page.</p>;
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <Card className="border-border/50 bg-card/60 p-8 text-center backdrop-blur-xl">
+          <ShieldAlert className="mx-auto h-10 w-10 text-muted-foreground/50" />
+          <p className="mt-3 text-sm text-muted-foreground">
+            Administrator access is required for this page.
+          </p>
+        </Card>
+      </div>
+    );
   }
 
   const users = usersQuery.data?.data ?? [];
   const audits = auditQuery.data?.data ?? [];
 
   return (
-    <main className="space-y-6">
-      <h1 className="text-2xl font-semibold text-slate-100">Admin</h1>
+    <div className="space-y-8 animate-in-fade">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15">
+          <ShieldCheck className="h-4 w-4 text-primary" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Administration</h1>
+          <p className="text-sm text-muted-foreground">Manage users, roles, and audit logs</p>
+        </div>
+      </div>
 
-      <section className="space-y-3 rounded-md border border-slate-800 bg-slate-950/70 p-4">
-        <h2 className="text-lg font-medium text-slate-100">Create user</h2>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <Input
-            placeholder="Email"
-            type="email"
-            value={createForm.email}
-            onChange={(event) =>
-              setCreateForm((current) => ({ ...current, email: event.target.value }))
-            }
-          />
-          <Input
-            placeholder="Full name"
-            value={createForm.fullName}
-            onChange={(event) =>
-              setCreateForm((current) => ({ ...current, fullName: event.target.value }))
-            }
-          />
-          <Input
-            placeholder="Password"
-            type="password"
-            value={createForm.password}
-            onChange={(event) =>
-              setCreateForm((current) => ({ ...current, password: event.target.value }))
-            }
-          />
-          <Select
-            value={createForm.role}
-            onValueChange={(value) =>
-              setCreateForm((current) => ({ ...current, role: value as UserRole }))
+      {/* Create User */}
+      <Card className="border-border/50 bg-card/60 backdrop-blur-xl">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-2">
+            <UserPlus className="h-4 w-4 text-primary" />
+            <CardTitle className="text-base">Create User</CardTitle>
+          </div>
+          <CardDescription>Add a new user to the system</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="create-email">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="create-email"
+                  placeholder="user@hospital.org"
+                  type="email"
+                  className="pl-9"
+                  value={createForm.email}
+                  onChange={(event) =>
+                    setCreateForm((current) => ({ ...current, email: event.target.value }))
+                  }
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="create-name">Full name</Label>
+              <div className="relative">
+                <UserIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="create-name"
+                  placeholder="Dr. Jane Smith"
+                  className="pl-9"
+                  value={createForm.fullName}
+                  onChange={(event) =>
+                    setCreateForm((current) => ({ ...current, fullName: event.target.value }))
+                  }
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="create-password">Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="create-password"
+                  placeholder="••••••••"
+                  type="password"
+                  className="pl-9"
+                  value={createForm.password}
+                  onChange={(event) =>
+                    setCreateForm((current) => ({ ...current, password: event.target.value }))
+                  }
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Select
+                value={createForm.role}
+                onValueChange={(value) =>
+                  setCreateForm((current) => ({ ...current, role: value as UserRole }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(UserRole).map((role) => (
+                    <SelectItem key={role} value={role}>
+                      {role}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <Button
+            className="mt-4 gap-1.5"
+            onClick={() => createUserMutation.mutate()}
+            disabled={
+              createUserMutation.isPending ||
+              !createForm.email ||
+              !createForm.fullName ||
+              !createForm.password
             }
           >
-            {Object.values(UserRole).map((role) => (
-              <SelectItem key={role} value={role}>
-                {role}
-              </SelectItem>
-            ))}
-          </Select>
+            <UserPlus className="h-4 w-4" />
+            {createUserMutation.isPending ? 'Creating…' : 'Create user'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Users Table */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Users className="h-4 w-4 text-primary" />
+          <h2 className="text-lg font-semibold tracking-tight">Users</h2>
         </div>
 
-        <Button
-          onClick={() => createUserMutation.mutate()}
-          disabled={
-            createUserMutation.isPending ||
-            !createForm.email ||
-            !createForm.fullName ||
-            !createForm.password
-          }
-        >
-          {createUserMutation.isPending ? 'Creating...' : 'Create user'}
-        </Button>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-medium text-slate-100">Users</h2>
-        {usersQuery.isLoading ? <p className="text-slate-300">Loading users...</p> : null}
-        {usersQuery.error ? <p className="text-slate-300">Unable to load users.</p> : null}
+        {usersQuery.isLoading ? (
+          <Card className="border-border/50 bg-card/60 p-1 backdrop-blur-xl">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 border-b border-border/50 px-4 py-3 last:border-0">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="h-8 w-24 rounded-md" />
+              </div>
+            ))}
+          </Card>
+        ) : null}
+        {usersQuery.error ? (
+          <Card className="border-border/50 bg-card/60 p-12 text-center backdrop-blur-xl">
+            <AlertCircle className="mx-auto h-10 w-10 text-muted-foreground/50" />
+            <p className="mt-3 text-sm text-muted-foreground">Unable to load users.</p>
+          </Card>
+        ) : null}
         {!usersQuery.isLoading && !usersQuery.error && users.length === 0 ? (
-          <p className="text-slate-300">No users found.</p>
+          <Card className="border-border/50 bg-card/60 p-12 text-center backdrop-blur-xl">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+              <Inbox className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <p className="mt-4 text-sm font-medium">No users found</p>
+          </Card>
         ) : null}
 
         {users.length > 0 ? (
-          <div className="overflow-x-auto rounded-md border border-slate-800">
+          <Card className="overflow-hidden border-border/50 bg-card/60 backdrop-blur-xl">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="border-border/50 hover:bg-transparent">
                   <TableHead>Email</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Role</TableHead>
-                  <TableHead>Active</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-[120px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {users.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell>{row.email}</TableCell>
-                    <TableCell>{row.fullName}</TableCell>
-                    <TableCell>{row.role}</TableCell>
+                  <TableRow key={row.id} className="group border-border/30 transition-colors hover:bg-muted/50">
+                    <TableCell className="font-mono text-xs">{row.email}</TableCell>
+                    <TableCell className="font-medium">{row.fullName}</TableCell>
                     <TableCell>
-                      <Badge variant={row.isActive ? 'secondary' : 'outline'}>
+                      <Badge variant="outline" className={roleConfig(row.role)}>
+                        {row.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={
+                          row.isActive
+                            ? 'bg-success/15 text-success border-success/30'
+                            : 'bg-muted text-muted-foreground border-border'
+                        }
+                      >
+                        {row.isActive ? (
+                          <CheckCircle2 className="mr-1 h-3 w-3" />
+                        ) : (
+                          <XCircle className="mr-1 h-3 w-3" />
+                        )}
                         {row.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant={row.isActive ? 'ghost' : 'outline'}
+                        className="h-7 gap-1 text-xs"
                         onClick={() =>
                           toggleUserMutation.mutate({ id: row.id, isActive: row.isActive })
                         }
                         disabled={toggleUserMutation.isPending}
                       >
-                        {row.isActive ? 'Deactivate' : 'Reactivate'}
+                        {row.isActive ? (
+                          <>
+                            <XCircle className="h-3 w-3" />
+                            Deactivate
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="h-3 w-3" />
+                            Reactivate
+                          </>
+                        )}
                       </Button>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </Card>
         ) : null}
-      </section>
+      </div>
 
-      <section className="space-y-3">
+      <Separator className="bg-border/50" />
+
+      {/* Audit Logs */}
+      <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-medium text-slate-100">Audit logs</h2>
+          <div className="flex items-center gap-2">
+            <ScrollText className="h-4 w-4 text-primary" />
+            <h2 className="text-lg font-semibold tracking-tight">Audit Logs</h2>
+          </div>
           <Select
-            value={auditAction}
-            onValueChange={(value) => setAuditAction(value as AuditAction | '')}
+            value={auditAction || '__all__'}
+            onValueChange={(value) => setAuditAction(value === '__all__' ? '' : value as AuditAction)}
           >
-            <SelectItem value="">All actions</SelectItem>
-            {Object.values(AuditAction).map((action) => (
-              <SelectItem key={action} value={action}>
-                {action}
-              </SelectItem>
-            ))}
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="All actions" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">All actions</SelectItem>
+              {Object.values(AuditAction).map((action) => (
+                <SelectItem key={action} value={action}>
+                  {action}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </div>
 
-        {auditQuery.isLoading ? <p className="text-slate-300">Loading audit events...</p> : null}
-        {auditQuery.error ? <p className="text-slate-300">Unable to load audit events.</p> : null}
+        {auditQuery.isLoading ? (
+          <Card className="border-border/50 bg-card/60 p-1 backdrop-blur-xl">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 border-b border-border/50 px-4 py-3 last:border-0">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+            ))}
+          </Card>
+        ) : null}
+        {auditQuery.error ? (
+          <Card className="border-border/50 bg-card/60 p-12 text-center backdrop-blur-xl">
+            <AlertCircle className="mx-auto h-10 w-10 text-muted-foreground/50" />
+            <p className="mt-3 text-sm text-muted-foreground">Unable to load audit events.</p>
+          </Card>
+        ) : null}
         {!auditQuery.isLoading && !auditQuery.error && audits.length === 0 ? (
-          <p className="text-slate-300">No audit events found.</p>
+          <Card className="border-border/50 bg-card/60 p-12 text-center backdrop-blur-xl">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+              <Inbox className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <p className="mt-4 text-sm font-medium">No audit events found</p>
+          </Card>
         ) : null}
 
         {audits.length > 0 ? (
-          <div className="overflow-x-auto rounded-md border border-slate-800">
+          <Card className="overflow-hidden border-border/50 bg-card/60 backdrop-blur-xl">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="border-border/50 hover:bg-transparent">
                   <TableHead>Time</TableHead>
                   <TableHead>Action</TableHead>
                   <TableHead>User</TableHead>
@@ -213,20 +399,28 @@ export default function AdminPage() {
               </TableHeader>
               <TableBody>
                 {audits.map((event) => (
-                  <TableRow key={event.id}>
-                    <TableCell>{new Date(event.createdAt).toISOString()}</TableCell>
-                    <TableCell>{event.action}</TableCell>
-                    <TableCell>{event.userId ?? '-'}</TableCell>
+                  <TableRow key={event.id} className="border-border/30 transition-colors hover:bg-muted/50">
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {new Date(event.createdAt).toISOString().replace('T', ' ').slice(0, 19)}
+                    </TableCell>
                     <TableCell>
-                      {event.resourceType ?? '-'} {event.resourceId ?? ''}
+                      <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
+                        {event.action}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {event.userId ?? '-'}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {event.resourceType ?? '-'} {event.resourceId ? event.resourceId.slice(0, 8) + '…' : ''}
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </Card>
         ) : null}
-      </section>
-    </main>
+      </div>
+    </div>
   );
 }
