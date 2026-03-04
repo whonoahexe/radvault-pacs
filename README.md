@@ -66,6 +66,13 @@ npm run test:integration # requires running stack
 ## API Documentation
 
 Swagger UI is available at `http://localhost:3000/docs` after `docker compose up`.
+Standalone OpenAPI artifact generation and verification is available via:
+
+```bash
+npm run -w @radvault/api openapi:verify
+```
+
+This writes and validates `apps/api/openapi/openapi.json`.
 
 ## Submission Validator
 

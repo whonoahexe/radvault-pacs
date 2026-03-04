@@ -1,4 +1,6 @@
 import { DynamicModule, MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { PrismaModule } from './common/prisma.module';
 import { HealthModule } from './modules/health/health.module';
@@ -17,6 +19,12 @@ import { RequestLoggingMiddleware } from './common/middleware/request-logging.mi
     PrometheusModule.register({
       defaultMetrics: { enabled: true },
     }) as unknown as DynamicModule,
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 120,
+      },
+    ]),
     HealthModule,
     DicomModule,
     WorklistModule,
@@ -25,6 +33,12 @@ import { RequestLoggingMiddleware } from './common/middleware/request-logging.mi
     AuditModule,
     InternalModule,
     EventsModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule implements NestModule {
