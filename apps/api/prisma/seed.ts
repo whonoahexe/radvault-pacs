@@ -775,6 +775,157 @@ async function seedWorklistAndReport(args: {
   });
 }
 
+async function seedMultiSliceCT(
+  seedDataDir: string,
+  ctStudyUid: string,
+): Promise<void> {
+  const DESIRED_SLICE_COUNT = 10;
+
+  // Check if the study already has enough instances in Orthanc
+  try {
+    const metaResponse = await fetch(
+      `${ORTHANC_BASE_URL}/dicom-web/studies/${encodeURIComponent(ctStudyUid)}/metadata`,
+      {
+        headers: {
+          Accept: 'application/dicom+json',
+          Authorization: ORTHANC_AUTHORIZATION_HEADER,
+        },
+      },
+    );
+
+    if (metaResponse.ok) {
+      const existing = (await metaResponse.json()) as unknown[];
+      if (existing.length >= DESIRED_SLICE_COUNT) {
+        console.log(
+          `CT study already has ${existing.length} instances; skipping multi-slice generation`,
+        );
+        return;
+      }
+    }
+  } catch {
+    // If check fails, continue with generation anyway
+  }
+
+  const templatePath = join(seedDataDir, 'CT_small.dcm');
+  const templateBuffer = await readFile(templatePath);
+  const templateDict = dcmjs.data.DicomMessage.readFile(bufferToArrayBuffer(templateBuffer), {
+    ignoreErrors: false,
+    untilTag: null,
+    includeUntilTagValue: false,
+    noCopy: false,
+  });
+
+  const seriesUid = String(
+    templateDict.dict['0020000E']?.Value?.[0] ??
+      templateDict.dict['0020000e']?.Value?.[0] ??
+      '',
+  ).trim();
+
+  if (!seriesUid) {
+    console.warn('Cannot read SeriesInstanceUID from CT template; skipping multi-slice');
+    return;
+  }
+
+  const dbSeries = await prisma.series.findUnique({
+    where: { seriesInstanceUid: seriesUid },
+    select: { id: true },
+  });
+
+  if (!dbSeries) {
+    console.warn('CT series not found in DB; skipping multi-slice generation');
+    return;
+  }
+
+  const sopClassUid = String(
+    templateDict.dict['00080016']?.Value?.[0] ?? '1.2.840.10008.5.1.4.1.1.2',
+  ).trim();
+
+  let generated = 0;
+
+  for (let i = 1; i < DESIRED_SLICE_COUNT; i++) {
+    const newSopUid = `${seriesUid}.${100 + i}`;
+
+    // Skip if already exists
+    const existing = await prisma.instance.findUnique({
+      where: { sopInstanceUid: newSopUid },
+      select: { id: true },
+    });
+    if (existing) {
+      continue;
+    }
+
+    // Re-parse the template fresh for each slice
+    const dict = dcmjs.data.DicomMessage.readFile(bufferToArrayBuffer(templateBuffer), {
+      ignoreErrors: false,
+      untilTag: null,
+      includeUntilTagValue: false,
+      noCopy: false,
+    });
+
+    // Update SOP Instance UID
+    if (dict.dict['00080018']) {
+      dict.dict['00080018'].Value = [newSopUid];
+    } else {
+      dict.dict['00080018'] = { Value: [newSopUid], vr: 'UI' };
+    }
+
+    // Update Instance Number
+    if (dict.dict['00200013']) {
+      dict.dict['00200013'].Value = [String(i + 1)];
+    } else {
+      dict.dict['00200013'] = { Value: [String(i + 1)], vr: 'IS' };
+    }
+
+    // Update Image Position Patient (z varies per slice)
+    dict.dict['00200032'] = { Value: ['0', '0', String(i * 5)], vr: 'DS' };
+
+    // Update Slice Location
+    dict.dict['00201041'] = { Value: [String(i * 5)], vr: 'DS' };
+
+    // Update MediaStorageSOPInstanceUID in meta header
+    if (dict.meta['00020003']) {
+      dict.meta['00020003'].Value = [newSopUid];
+    }
+
+    // Serialize to DICOM Part 10 and upload
+    const sliceBuffer = Buffer.from(dict.write());
+    await uploadDicomToOrthanc(`synthetic_ct_slice_${i + 1}.dcm`, sliceBuffer);
+
+    // Create DB instance record
+    await prisma.instance.create({
+      data: {
+        seriesId: dbSeries.id,
+        sopInstanceUid: newSopUid,
+        sopClassUid: sopClassUid,
+        instanceNumber: i + 1,
+      },
+    });
+
+    generated++;
+  }
+
+  // Update counts in the database
+  if (generated > 0) {
+    const study = await prisma.study.findUnique({
+      where: { studyInstanceUid: ctStudyUid },
+      select: { id: true },
+    });
+    if (study) {
+      await prisma.study.update({
+        where: { id: study.id },
+        data: { numberOfInstances: DESIRED_SLICE_COUNT, numberOfSeries: 1 },
+      });
+      await prisma.series.update({
+        where: { seriesInstanceUid: seriesUid },
+        data: { numberOfInstances: DESIRED_SLICE_COUNT },
+      });
+    }
+    console.log(`Generated and uploaded ${generated} additional CT slices`);
+  } else {
+    console.log('All CT slices already exist; skipping');
+  }
+}
+
 async function main() {
   const seedDataDir = await resolveSeedDataDir();
 
@@ -785,6 +936,13 @@ async function main() {
 
   const studyUids = await seedDicomStudies(seedDataDir);
   console.log('DICOM studies seeded and synced');
+
+  try {
+    await seedMultiSliceCT(seedDataDir, studyUids.ctStudyUid);
+    console.log('Multi-slice CT data ready');
+  } catch (err) {
+    console.warn('Multi-slice CT generation failed (non-fatal):', err);
+  }
 
   await seedWorklistAndReport({
     ...studyUids,
