@@ -142,14 +142,13 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: http://localhost:3000
-        NEXT_PUBLIC_ORTHANC_WADO_URL: http://localhost:8042/dicom-web
     depends_on:
       api:
         condition: service_healthy
     environment:
       NODE_ENV: ${NODE_ENV}
       NEXT_PUBLIC_API_URL: http://localhost:3000
-      NEXT_PUBLIC_ORTHANC_WADO_URL: http://localhost:8042/dicom-web
+      ORTHANC_URL: http://orthanc:8042
       HOSTNAME: 0.0.0.0
       PORT: '3000'
     ports:

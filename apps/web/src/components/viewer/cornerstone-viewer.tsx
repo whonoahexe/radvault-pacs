@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Enums as csToolsEnums } from '@cornerstonejs/tools';
+import dicomImageLoader from '@cornerstonejs/dicom-image-loader';
 import { type DicomSeries, type DicomInstance, api } from '@/lib/api';
+import { useAuthStore } from '@/store/auth.store';
 import {
   createRenderingEngine,
   createToolGroup,
@@ -28,8 +30,6 @@ const PRESETS = [
   { label: 'Brain', lower: 0, upper: 80 },
 ] as const;
 
-const WADO_ROOT = process.env.NEXT_PUBLIC_ORTHANC_WADO_URL ?? 'http://localhost:8042/dicom-web';
-
 export function CornerstoneViewer({
   studyUid,
   className,
@@ -42,6 +42,9 @@ export function CornerstoneViewer({
   const renderingEngineIdRef = useRef(`engine-${Math.random().toString(36).slice(2)}`);
   const [toolMode, setToolMode] = useState<ViewerToolMode>('pan');
   const [selectedSeriesUid, setSelectedSeriesUid] = useState<string | null>(null);
+  const [isViewerInitialized, setIsViewerInitialized] = useState(false);
+  const [viewerError, setViewerError] = useState<string | null>(null);
+  const [isLoadingImage, setIsLoadingImage] = useState(false);
 
   const seriesQuery = useQuery({
     queryKey: ['viewer-series', studyUid],
@@ -69,15 +72,19 @@ export function CornerstoneViewer({
     enabled: Boolean(selectedSeriesUid),
   });
 
+  const wadoRoot = useMemo(() => {
+    return process.env.NEXT_PUBLIC_ORTHANC_WADO_URL || `${window.location.origin}/api/dicom-web`;
+  }, []);
+
   const imageIds = useMemo(() => {
     if (!selectedSeriesUid || !instancesQuery.data) {
       return [] as string[];
     }
 
     return instancesQuery.data.map((instance) => {
-      return `wadors:${WADO_ROOT}/studies/${studyUid}/series/${selectedSeriesUid}/instances/${instance.sopInstanceUid}/frames/1`;
+      return `wadors:${wadoRoot}/studies/${studyUid}/series/${selectedSeriesUid}/instances/${instance.sopInstanceUid}/frames/1`;
     });
-  }, [instancesQuery.data, selectedSeriesUid, studyUid]);
+  }, [instancesQuery.data, selectedSeriesUid, studyUid, wadoRoot]);
 
   useEffect(() => {
     const setup = async () => {
@@ -100,6 +107,7 @@ export function CornerstoneViewer({
       });
 
       setToolMode('pan');
+      setIsViewerInitialized(true);
     };
 
     void setup();
@@ -111,6 +119,10 @@ export function CornerstoneViewer({
   }, []);
 
   useEffect(() => {
+    if (!isViewerInitialized) {
+      return;
+    }
+
     const toolGroup = createToolGroup(toolGroupIdRef.current);
 
     toolGroup.setToolPassive('Pan');
@@ -132,25 +144,80 @@ export function CornerstoneViewer({
         bindings: [{ mouseButton: csToolsEnums.MouseBindings.Primary }],
       });
     }
-  }, [toolMode]);
+  }, [toolMode, isViewerInitialized]);
 
   useEffect(() => {
     const applyStack = async () => {
-      if (!renderingEngineRef.current || imageIds.length === 0) {
+      if (!isViewerInitialized || !renderingEngineRef.current || imageIds.length === 0 || !selectedSeriesUid) {
         return;
       }
 
-      const viewport = renderingEngineRef.current.getViewport(viewportIdRef.current) as unknown as {
-        setStack: (ids: string[]) => Promise<void>;
-        render: () => void;
-      };
+      setViewerError(null);
+      setIsLoadingImage(true);
 
-      await viewport.setStack(imageIds);
-      viewport.render();
+      // Fetch and register WADO-RS metadata so the decoder knows
+      // pixel format (samplesPerPixel, rows, columns, bitsAllocated, etc.)
+      let metadataRegistered = 0;
+      try {
+        const accessToken = useAuthStore.getState().accessToken;
+        const metadataUrl = `${wadoRoot}/studies/${studyUid}/series/${selectedSeriesUid}/metadata`;
+        const headers: Record<string, string> = { Accept: 'application/dicom+json' };
+        if (accessToken) {
+          headers.Authorization = `Bearer ${accessToken}`;
+        }
+
+        const metaResponse = await fetch(metadataUrl, { headers });
+        if (metaResponse.ok) {
+          const instanceMetadataList = await metaResponse.json();
+          for (const instanceMeta of instanceMetadataList) {
+            // SOP Instance UID = tag (0008,0018)
+            const sopInstanceUid = instanceMeta['00080018']?.Value?.[0];
+            if (sopInstanceUid) {
+              const imageId = `wadors:${wadoRoot}/studies/${studyUid}/series/${selectedSeriesUid}/instances/${sopInstanceUid}/frames/1`;
+              dicomImageLoader.wadors.metaDataManager.add(imageId, instanceMeta);
+              metadataRegistered++;
+            }
+          }
+        } else {
+          console.warn(`WADO-RS metadata fetch returned ${metaResponse.status}. DICOM pixel data may not be available in the imaging server for this study.`);
+          setViewerError(
+            `This study does not have imaging data available (server returned ${metaResponse.status}). The study may only contain metadata without pixel data.`
+          );
+          setIsLoadingImage(false);
+          return;
+        }
+      } catch (err) {
+        console.error('Failed to fetch WADO-RS metadata:', err);
+        setViewerError('Failed to connect to the imaging server. Please try refreshing the page.');
+        setIsLoadingImage(false);
+        return;
+      }
+
+      if (metadataRegistered === 0) {
+        setViewerError('No image metadata could be loaded for this series. The DICOM data may be incomplete.');
+        setIsLoadingImage(false);
+        return;
+      }
+
+      try {
+        const viewport = renderingEngineRef.current.getViewport(viewportIdRef.current) as unknown as {
+          setStack: (ids: string[]) => Promise<void>;
+          render: () => void;
+        };
+
+        await viewport.setStack(imageIds);
+        viewport.render();
+        setViewerError(null);
+      } catch (err) {
+        console.error('Failed to render DICOM image stack:', err);
+        setViewerError('Failed to render the image. The DICOM data may be in an unsupported format.');
+      } finally {
+        setIsLoadingImage(false);
+      }
     };
 
     void applyStack();
-  }, [imageIds]);
+  }, [imageIds, selectedSeriesUid, studyUid, wadoRoot, isViewerInitialized]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -293,7 +360,21 @@ export function CornerstoneViewer({
           <p className="text-sm text-slate-300">No image frames available for this series.</p>
         ) : null}
 
-        <div ref={containerRef} className="h-[680px] rounded-md border border-slate-800 bg-black" />
+        <div className="relative h-[680px] rounded-md border border-slate-800 bg-black">
+          <div ref={containerRef} className="absolute inset-0" />
+          {viewerError ? (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/80">
+              <div className="max-w-md rounded-lg border border-red-800/50 bg-red-950/50 p-6 text-center">
+                <p className="text-sm font-medium text-red-300">{viewerError}</p>
+              </div>
+            </div>
+          ) : null}
+          {isLoadingImage ? (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60">
+              <p className="text-sm text-slate-300 animate-pulse">Loading DICOM image...</p>
+            </div>
+          ) : null}
+        </div>
       </section>
     </div>
   );

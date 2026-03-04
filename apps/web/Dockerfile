@@ -25,10 +25,9 @@ COPY apps/web/ ./apps/web/
 RUN npm run build --workspace=packages/types
 
 # Bake NEXT_PUBLIC_ vars into the client bundle at build time
+# Note: WADO-RS is proxied server-side by Next.js rewrites; no NEXT_PUBLIC_ORTHANC_WADO_URL needed.
 ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_ORTHANC_WADO_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-ENV NEXT_PUBLIC_ORTHANC_WADO_URL=${NEXT_PUBLIC_ORTHANC_WADO_URL}
 
 # Build Next.js (standalone output)
 RUN npm run build --workspace=apps/web
