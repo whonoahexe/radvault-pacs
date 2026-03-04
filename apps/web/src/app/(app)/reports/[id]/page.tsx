@@ -139,6 +139,18 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
     },
   });
 
+  const handleSign = async (status: ReportStatus.Preliminary | ReportStatus.Final) => {
+    if (updateMutation.isPending || signMutation.isPending) {
+      return;
+    }
+
+    if (reportQuery.data?.status === ReportStatus.Draft && isDirty) {
+      await updateMutation.mutateAsync();
+    }
+
+    signMutation.mutate(status);
+  };
+
   const amendMutation = useMutation({
     mutationFn: () =>
       api.reports.amend(id, {
@@ -330,8 +342,10 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                       variant="outline"
                       size="sm"
                       className="gap-1.5"
-                      onClick={() => signMutation.mutate(ReportStatus.Preliminary)}
+                      onClick={() => void handleSign(ReportStatus.Preliminary)}
                       disabled={
+                        updateMutation.isPending ||
+                        signMutation.isPending ||
                         report.status !== ReportStatus.Draft &&
                         report.status !== ReportStatus.Preliminary
                       }
@@ -343,8 +357,12 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                     <Button
                       size="sm"
                       className="gap-1.5"
-                      onClick={() => signMutation.mutate(ReportStatus.Final)}
-                      disabled={report.status !== ReportStatus.Preliminary}
+                      onClick={() => void handleSign(ReportStatus.Final)}
+                      disabled={
+                        updateMutation.isPending ||
+                        signMutation.isPending ||
+                        report.status !== ReportStatus.Preliminary
+                      }
                     >
                       <CheckCircle2 className="h-3.5 w-3.5" />
                       Sign Final
