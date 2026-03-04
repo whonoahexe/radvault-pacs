@@ -87,9 +87,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="grid min-h-screen grid-cols-[260px_1fr]">
+      <div className="min-h-screen">
         {/* Sidebar */}
-        <aside className="flex flex-col border-r border-sidebar-border bg-sidebar">
+        <aside className="fixed inset-y-0 left-0 z-20 flex h-screen w-[260px] flex-col border-r border-sidebar-border bg-sidebar">
           {/* Brand */}
           <div className="flex h-16 items-center gap-3 px-5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
@@ -106,7 +106,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <Separator className="bg-sidebar-border" />
 
           {/* Navigation */}
-          <nav className="flex-1 space-y-1 px-3 py-4">
+          <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
             <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
               Navigation
             </p>
@@ -182,7 +182,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </aside>
 
         {/* Main content area */}
-        <main className="min-w-0 overflow-auto bg-background">
+        <main className="ml-[260px] min-w-0 overflow-auto bg-background">
           <div className="mx-auto max-w-[1400px] p-6">{children}</div>
         </main>
       </div>

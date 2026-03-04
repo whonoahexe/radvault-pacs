@@ -296,7 +296,7 @@ export default function WorklistPage() {
                       {item.assignedTo ? (
                         <span className="flex items-center gap-1.5">
                           <UserCheck className="h-3.5 w-3.5 text-success" />
-                          {item.assignedTo}
+                          {item.assignedUser?.fullName ?? item.assignedTo}
                         </span>
                       ) : (
                         <span className="text-muted-foreground/60">Unassigned</span>

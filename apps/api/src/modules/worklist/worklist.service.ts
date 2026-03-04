@@ -83,6 +83,12 @@ export class WorklistService {
     const rows = await this.prisma.worklistItem.findMany({
       where,
       include: {
+        assignedUser: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
         study: {
           include: {
             patient: true,
@@ -123,6 +129,12 @@ export class WorklistService {
     const item = await this.prisma.worklistItem.findUnique({
       where: { id },
       include: {
+        assignedUser: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
         study: {
           include: {
             patient: true,

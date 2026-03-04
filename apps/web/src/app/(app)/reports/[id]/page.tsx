@@ -96,6 +96,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
     impression: '',
   });
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState('');
+  const [saveState, setSaveState] = useState<'unsaved' | 'saving' | 'saved' | 'error'>('saved');
 
   useEffect(() => {
     if (!reportQuery.data) {
@@ -112,10 +113,14 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
 
     setFormState(snapshot);
     setLastSavedSnapshot(JSON.stringify(snapshot));
+    setSaveState('saved');
   }, [reportQuery.data]);
 
   const updateMutation = useMutation({
     mutationFn: () => api.reports.update(id, formState),
+    onMutate: () => {
+      setSaveState('saving');
+    },
     onSuccess: async (updated) => {
       const snapshot = {
         indication: updated.indication ?? '',
@@ -126,7 +131,11 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
       };
 
       setLastSavedSnapshot(JSON.stringify(snapshot));
+      setSaveState('saved');
       await queryClient.invalidateQueries({ queryKey: ['report', id] });
+    },
+    onError: () => {
+      setSaveState('error');
     },
   });
 
@@ -173,13 +182,25 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
       return;
     }
 
-    const intervalId = window.setInterval(() => {
-      if (isDirty && !updateMutation.isPending) {
-        updateMutation.mutate();
-      }
-    }, 30_000);
+    if (isDirty && saveState !== 'saving') {
+      setSaveState('unsaved');
+    }
+  }, [canEdit, isDirty, reportQuery.data?.status, saveState]);
 
-    return () => window.clearInterval(intervalId);
+  useEffect(() => {
+    if (!canEdit || reportQuery.data?.status !== ReportStatus.Draft) {
+      return;
+    }
+
+    if (!isDirty || updateMutation.isPending) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      updateMutation.mutate();
+    }, 1200);
+
+    return () => window.clearTimeout(timeoutId);
   }, [canEdit, isDirty, reportQuery.data?.status, updateMutation]);
 
   if (user?.role === UserRole.Technologist) {
@@ -346,8 +367,8 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                       disabled={
                         updateMutation.isPending ||
                         signMutation.isPending ||
-                        report.status !== ReportStatus.Draft &&
-                        report.status !== ReportStatus.Preliminary
+                        (report.status !== ReportStatus.Draft &&
+                          report.status !== ReportStatus.Preliminary)
                       }
                     >
                       <PenLine className="h-3.5 w-3.5" />
@@ -383,10 +404,15 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                 ) : null}
 
                 <div className="ml-auto flex items-center gap-2">
-                  {updateMutation.isPending ? (
+                  {updateMutation.isPending || saveState === 'saving' ? (
                     <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Save className="h-3 w-3 animate-pulse" />
                       Saving…
+                    </span>
+                  ) : saveState === 'error' ? (
+                    <span className="flex items-center gap-1.5 text-xs text-destructive">
+                      <AlertCircle className="h-3 w-3" />
+                      Save failed
                     </span>
                   ) : isDirty ? (
                     <span className="flex items-center gap-1.5 text-xs text-warning">

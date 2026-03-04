@@ -775,10 +775,7 @@ async function seedWorklistAndReport(args: {
   });
 }
 
-async function seedMultiSliceCT(
-  seedDataDir: string,
-  ctStudyUid: string,
-): Promise<void> {
+async function seedMultiSliceCT(seedDataDir: string, ctStudyUid: string): Promise<void> {
   const DESIRED_SLICE_COUNT = 10;
 
   // Check if the study already has enough instances in Orthanc
@@ -816,9 +813,7 @@ async function seedMultiSliceCT(
   });
 
   const seriesUid = String(
-    templateDict.dict['0020000E']?.Value?.[0] ??
-      templateDict.dict['0020000e']?.Value?.[0] ??
-      '',
+    templateDict.dict['0020000E']?.Value?.[0] ?? templateDict.dict['0020000e']?.Value?.[0] ?? '',
   ).trim();
 
   if (!seriesUid) {

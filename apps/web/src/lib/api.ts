@@ -45,6 +45,10 @@ export interface DicomTagEntry {
 export type DicomDataset = Record<string, DicomTagEntry>;
 
 export interface WorklistItemWithStudy extends WorklistItem {
+  assignedUser?: {
+    id: string;
+    fullName: string;
+  } | null;
   study: DicomStudy & {
     patient: DicomPatient;
     series?: DicomSeries[];

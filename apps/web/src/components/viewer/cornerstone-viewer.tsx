@@ -148,7 +148,12 @@ export function CornerstoneViewer({
 
   useEffect(() => {
     const applyStack = async () => {
-      if (!isViewerInitialized || !renderingEngineRef.current || imageIds.length === 0 || !selectedSeriesUid) {
+      if (
+        !isViewerInitialized ||
+        !renderingEngineRef.current ||
+        imageIds.length === 0 ||
+        !selectedSeriesUid
+      ) {
         return;
       }
 
@@ -179,9 +184,11 @@ export function CornerstoneViewer({
             }
           }
         } else {
-          console.warn(`WADO-RS metadata fetch returned ${metaResponse.status}. DICOM pixel data may not be available in the imaging server for this study.`);
+          console.warn(
+            `WADO-RS metadata fetch returned ${metaResponse.status}. DICOM pixel data may not be available in the imaging server for this study.`,
+          );
           setViewerError(
-            `This study does not have imaging data available (server returned ${metaResponse.status}). The study may only contain metadata without pixel data.`
+            `This study does not have imaging data available (server returned ${metaResponse.status}). The study may only contain metadata without pixel data.`,
           );
           setIsLoadingImage(false);
           return;
@@ -194,13 +201,17 @@ export function CornerstoneViewer({
       }
 
       if (metadataRegistered === 0) {
-        setViewerError('No image metadata could be loaded for this series. The DICOM data may be incomplete.');
+        setViewerError(
+          'No image metadata could be loaded for this series. The DICOM data may be incomplete.',
+        );
         setIsLoadingImage(false);
         return;
       }
 
       try {
-        const viewport = renderingEngineRef.current.getViewport(viewportIdRef.current) as unknown as {
+        const viewport = renderingEngineRef.current.getViewport(
+          viewportIdRef.current,
+        ) as unknown as {
           setStack: (ids: string[]) => Promise<void>;
           render: () => void;
         };
@@ -210,7 +221,9 @@ export function CornerstoneViewer({
         setViewerError(null);
       } catch (err) {
         console.error('Failed to render DICOM image stack:', err);
-        setViewerError('Failed to render the image. The DICOM data may be in an unsupported format.');
+        setViewerError(
+          'Failed to render the image. The DICOM data may be in an unsupported format.',
+        );
       } finally {
         setIsLoadingImage(false);
       }

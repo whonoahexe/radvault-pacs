@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuditAction, UserRole } from '@radvault/types';
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -57,10 +58,29 @@ function roleConfig(role: string) {
   }
 }
 
+function toDateParam(date: Date | undefined): string | undefined {
+  if (!date) {
+    return undefined;
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function AdminPage() {
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
   const [auditAction, setAuditAction] = useState<AuditAction | ''>('');
+  const [auditUserId, setAuditUserId] = useState('');
+  const [auditFrom, setAuditFrom] = useState<Date | undefined>();
+  const [auditTo, setAuditTo] = useState<Date | undefined>();
+  const [auditSort, setAuditSort] = useState<'date_desc' | 'date_asc'>('date_desc');
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const auditFromParam = toDateParam(auditFrom);
+  const auditToParam = toDateParam(auditTo);
 
   const [createForm, setCreateForm] = useState({
     email: '',
@@ -76,10 +96,13 @@ export default function AdminPage() {
   });
 
   const auditQuery = useQuery({
-    queryKey: ['admin-audit', auditAction],
+    queryKey: ['admin-audit', auditAction, auditUserId, auditFromParam, auditToParam],
     queryFn: () =>
       api.admin.auditLogs({
+        userId: auditUserId || undefined,
         action: auditAction || undefined,
+        from: auditFromParam,
+        to: auditToParam,
         page: 1,
         limit: 50,
       }),
@@ -89,8 +112,12 @@ export default function AdminPage() {
   const createUserMutation = useMutation({
     mutationFn: () => api.admin.createUser(createForm),
     onSuccess: async () => {
+      setCreateError(null);
       setCreateForm({ email: '', fullName: '', password: '', role: UserRole.Radiologist });
       await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    },
+    onError: (error) => {
+      setCreateError(error instanceof Error ? error.message : 'Unable to create user.');
     },
   });
 
@@ -116,7 +143,16 @@ export default function AdminPage() {
   }
 
   const users = usersQuery.data?.data ?? [];
-  const audits = auditQuery.data?.data ?? [];
+  const userNameById = useMemo(() => new Map(users.map((row) => [row.id, row.fullName])), [users]);
+  const audits = useMemo(() => {
+    const rows = [...(auditQuery.data?.data ?? [])];
+    rows.sort((left, right) => {
+      const leftTs = new Date(left.createdAt).getTime();
+      const rightTs = new Date(right.createdAt).getTime();
+      return auditSort === 'date_asc' ? leftTs - rightTs : rightTs - leftTs;
+    });
+    return rows;
+  }, [auditQuery.data?.data, auditSort]);
 
   return (
     <div className="space-y-8 animate-in-fade">
@@ -224,6 +260,8 @@ export default function AdminPage() {
             <UserPlus className="h-4 w-4" />
             {createUserMutation.isPending ? 'Creating…' : 'Create user'}
           </Button>
+
+          {createError ? <p className="mt-3 text-sm text-destructive">{createError}</p> : null}
         </CardContent>
       </Card>
 
@@ -347,25 +385,99 @@ export default function AdminPage() {
             <ScrollText className="h-4 w-4 text-primary" />
             <h2 className="text-lg font-semibold tracking-tight">Audit Logs</h2>
           </div>
-          <Select
-            value={auditAction || '__all__'}
-            onValueChange={(value) =>
-              setAuditAction(value === '__all__' ? '' : (value as AuditAction))
+        </div>
+
+        <Card className="border-border/50 bg-card/60 p-4 backdrop-blur-xl">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="w-[180px]">
+              <Select
+                value={auditAction || '__all__'}
+                onValueChange={(value) =>
+                  setAuditAction(value === '__all__' ? '' : (value as AuditAction))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All actions" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All actions</SelectItem>
+                  {Object.values(AuditAction).map((action) => (
+                    <SelectItem key={action} value={action}>
+                      {action}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="w-[180px]">
+              <Select
+                value={auditUserId || '__all__'}
+                onValueChange={(value) => setAuditUserId(value === '__all__' ? '' : value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All users" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All users</SelectItem>
+                  {users.map((row) => (
+                    <SelectItem key={row.id} value={row.id}>
+                      {row.fullName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <DatePicker
+              className="w-[170px]"
+              value={auditFrom}
+              maxDate={auditTo}
+              placeholder="From date"
+              onChange={setAuditFrom}
+            />
+
+            <DatePicker
+              className="w-[170px]"
+              value={auditTo}
+              minDate={auditFrom}
+              placeholder="To date"
+              onChange={setAuditTo}
+            />
+
+            <div className="w-[170px]">
+              <Select
+                value={auditSort}
+                onValueChange={(value) => setAuditSort(value as 'date_desc' | 'date_asc')}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="date_desc">Newest first</SelectItem>
+                  <SelectItem value="date_asc">Oldest first</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <Button
+            variant="ghost"
+            className="mt-3 h-9"
+            onClick={() => {
+              setAuditAction('');
+              setAuditUserId('');
+              setAuditFrom(undefined);
+              setAuditTo(undefined);
+              setAuditSort('date_desc');
+            }}
+            disabled={
+              !auditAction && !auditUserId && !auditFrom && !auditTo && auditSort === 'date_desc'
             }
           >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="All actions" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">All actions</SelectItem>
-              {Object.values(AuditAction).map((action) => (
-                <SelectItem key={action} value={action}>
-                  {action}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            Clear filters
+          </Button>
+        </Card>
 
         {auditQuery.isLoading ? (
           <Card className="border-border/50 bg-card/60 p-1 backdrop-blur-xl">
@@ -425,7 +537,9 @@ export default function AdminPage() {
                         {event.action}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{event.userId ?? '-'}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {event.userId ? (userNameById.get(event.userId) ?? event.userId) : '-'}
+                    </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">
                       {event.resourceType ?? '-'}{' '}
                       {event.resourceId ? event.resourceId.slice(0, 8) + '…' : ''}

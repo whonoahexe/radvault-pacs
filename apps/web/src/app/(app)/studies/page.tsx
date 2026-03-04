@@ -8,6 +8,7 @@ import { api, type DicomStudy, type WorklistItemWithStudy } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
   Select,
   SelectContent,
@@ -39,8 +40,11 @@ import {
 
 const MODALITIES = ['', 'CT', 'MR', 'US', 'CR', 'DX', 'MG', 'NM', 'PT'] as const;
 
-function formatDateToDicom(date: string): string {
-  return date.replaceAll('-', '');
+function formatDateToDicom(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}${month}${day}`;
 }
 
 function formatDicomDate(date: string | null | undefined): string {
@@ -122,13 +126,14 @@ export default function StudiesPage() {
   const user = useAuthStore((state) => state.user);
 
   const [patientName, setPatientName] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const [modality, setModality] = useState('');
   const [sortBy, setSortBy] = useState<'date_desc' | 'date_asc' | 'name_asc'>('date_desc');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const studyDate = useMemo(() => {
     if (!dateFrom || !dateTo) {
@@ -193,11 +198,58 @@ export default function StudiesPage() {
     },
   });
 
+  const handleUploadFile = async (file: File) => {
+    await uploadMutation.mutateAsync(file);
+  };
+
+  const handleDrop = async (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragOver(false);
+
+    if (!canUpload || uploadMutation.isPending) {
+      return;
+    }
+
+    const file = event.dataTransfer.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    await handleUploadFile(file);
+  };
+
   const canUpload = user?.role === UserRole.Admin || user?.role === UserRole.Technologist;
   const studies = studiesQuery.data ?? [];
 
   return (
-    <div className="space-y-6 animate-in-fade">
+    <div
+      className="space-y-6 animate-in-fade"
+      onDrop={(event) => {
+        void handleDrop(event);
+      }}
+      onDragOver={(event) => {
+        if (!canUpload) {
+          return;
+        }
+        event.preventDefault();
+      }}
+      onDragEnter={(event) => {
+        if (!canUpload) {
+          return;
+        }
+        event.preventDefault();
+        setIsDragOver(true);
+      }}
+      onDragLeave={(event) => {
+        if (!canUpload) {
+          return;
+        }
+        if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          return;
+        }
+        setIsDragOver(false);
+      }}
+    >
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -218,7 +270,7 @@ export default function StudiesPage() {
                 if (!file) {
                   return;
                 }
-                await uploadMutation.mutateAsync(file);
+                await handleUploadFile(file);
                 event.target.value = '';
               }}
             />
@@ -234,10 +286,21 @@ export default function StudiesPage() {
         ) : null}
       </div>
 
+      {canUpload ? (
+        <Card
+          className={[
+            'border-border/50 bg-card/60 p-4 text-sm text-muted-foreground backdrop-blur-xl transition-colors',
+            isDragOver ? 'border-primary bg-primary/5 text-foreground' : '',
+          ].join(' ')}
+        >
+          Drop a `.dcm` file anywhere on this page to upload.
+        </Card>
+      ) : null}
+
       {/* Filter Bar */}
       <Card className="border-border/50 bg-card/60 p-4 backdrop-blur-xl">
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-6">
-          <div className="relative lg:col-span-1">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="relative min-w-[260px] flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Patient name…"
@@ -249,73 +312,102 @@ export default function StudiesPage() {
               }}
             />
           </div>
-          <Input
-            type="date"
-            value={dateFrom}
-            onChange={(event) => {
-              setDateFrom(event.target.value);
+          <div className="w-[170px] space-y-1">
+            <p className="text-xs text-muted-foreground">From</p>
+            <DatePicker
+              className="w-[170px]"
+              value={dateFrom}
+              maxDate={dateTo}
+              placeholder="From date"
+              onChange={(date) => {
+                setDateFrom(date);
+                setPage(1);
+              }}
+            />
+          </div>
+          <div className="w-[170px] space-y-1">
+            <p className="text-xs text-muted-foreground">To</p>
+            <DatePicker
+              className="w-[170px]"
+              value={dateTo}
+              minDate={dateFrom}
+              placeholder="To date"
+              onChange={(date) => {
+                setDateTo(date);
+                setPage(1);
+              }}
+            />
+          </div>
+          <div className="w-[180px]">
+            <Select
+              value={modality}
+              onValueChange={(value) => {
+                setModality(value === '__all__' ? '' : value);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All modalities" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All modalities</SelectItem>
+                {MODALITIES.filter(Boolean).map((item) => (
+                  <SelectItem key={item} value={item}>
+                    {item}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-[180px]">
+            <Select
+              value={sortBy}
+              onValueChange={(value) => {
+                setSortBy(value as 'date_desc' | 'date_asc' | 'name_asc');
+                setPage(1);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date_desc">Date (newest)</SelectItem>
+                <SelectItem value="date_asc">Date (oldest)</SelectItem>
+                <SelectItem value="name_asc">Patient (A-Z)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-[140px]">
+            <Select
+              value={String(limit)}
+              onValueChange={(value) => {
+                setLimit(Number(value));
+                setPage(1);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10 / page</SelectItem>
+                <SelectItem value="20">20 / page</SelectItem>
+                <SelectItem value="50">50 / page</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button
+            variant="ghost"
+            className="h-9"
+            onClick={() => {
+              setDateFrom(undefined);
+              setDateTo(undefined);
               setPage(1);
             }}
-          />
-          <Input
-            type="date"
-            value={dateTo}
-            onChange={(event) => {
-              setDateTo(event.target.value);
-              setPage(1);
-            }}
-          />
-          <Select
-            value={modality}
-            onValueChange={(value) => {
-              setModality(value === '__all__' ? '' : value);
-              setPage(1);
-            }}
+            disabled={!dateFrom && !dateTo}
           >
-            <SelectTrigger>
-              <SelectValue placeholder="All modalities" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">All modalities</SelectItem>
-              {MODALITIES.filter(Boolean).map((item) => (
-                <SelectItem key={item} value={item}>
-                  {item}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={sortBy}
-            onValueChange={(value) => {
-              setSortBy(value as 'date_desc' | 'date_asc' | 'name_asc');
-              setPage(1);
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="date_desc">Date (newest)</SelectItem>
-              <SelectItem value="date_asc">Date (oldest)</SelectItem>
-              <SelectItem value="name_asc">Patient (A-Z)</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select
-            value={String(limit)}
-            onValueChange={(value) => {
-              setLimit(Number(value));
-              setPage(1);
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="10">10 / page</SelectItem>
-              <SelectItem value="20">20 / page</SelectItem>
-              <SelectItem value="50">50 / page</SelectItem>
-            </SelectContent>
-          </Select>
+            Clear dates
+          </Button>
         </div>
       </Card>
 
