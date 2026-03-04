@@ -23,13 +23,24 @@ import {
 export default function AppLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, accessToken, logout } = useAuthStore();
+  const { user, accessToken, hasHydrated, logout } = useAuthStore();
 
   useEffect(() => {
-    if (!accessToken) {
+    if (hasHydrated && !accessToken) {
       router.replace('/login');
     }
-  }, [accessToken, router]);
+  }, [accessToken, hasHydrated, router]);
+
+  if (!hasHydrated) {
+    return (
+      <main className="flex min-h-screen items-center justify-center">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Activity className="h-5 w-5 animate-pulse" />
+          <span className="text-sm">Restoring session…</span>
+        </div>
+      </main>
+    );
+  }
 
   if (!accessToken) {
     return (

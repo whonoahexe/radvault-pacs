@@ -6,6 +6,8 @@ interface AuthState {
   user: AuthenticatedUser | null;
   accessToken: string | null;
   refreshToken: string | null;
+  hasHydrated: boolean;
+  setHasHydrated: (value: boolean) => void;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   setTokens: (tokens: { accessToken: string; refreshToken: string }) => void;
@@ -23,6 +25,10 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       accessToken: null,
       refreshToken: null,
+      hasHydrated: false,
+      setHasHydrated(value) {
+        set({ hasHydrated: value });
+      },
 
       async login(email, password) {
         const result = await api.auth.login({ email, password });
@@ -63,6 +69,11 @@ export const useAuthStore = create<AuthState>()(
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
       }),
+      onRehydrateStorage: () => {
+        return (state) => {
+          state?.setHasHydrated(true);
+        };
+      },
     },
   ),
 );
