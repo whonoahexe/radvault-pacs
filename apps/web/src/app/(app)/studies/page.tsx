@@ -53,26 +53,39 @@ function formatDicomDate(date: string | null | undefined): string {
 
 function modalityColor(mod: string | null | undefined): string {
   switch (mod) {
-    case 'CT': return 'bg-blue-500/15 text-blue-400 border-blue-500/30';
-    case 'MR': return 'bg-violet-500/15 text-violet-400 border-violet-500/30';
-    case 'US': return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
+    case 'CT':
+      return 'bg-blue-500/15 text-blue-400 border-blue-500/30';
+    case 'MR':
+      return 'bg-violet-500/15 text-violet-400 border-violet-500/30';
+    case 'US':
+      return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
     case 'CR':
-    case 'DX': return 'bg-amber-500/15 text-amber-400 border-amber-500/30';
-    case 'MG': return 'bg-pink-500/15 text-pink-400 border-pink-500/30';
+    case 'DX':
+      return 'bg-amber-500/15 text-amber-400 border-amber-500/30';
+    case 'MG':
+      return 'bg-pink-500/15 text-pink-400 border-pink-500/30';
     case 'NM':
-    case 'PT': return 'bg-orange-500/15 text-orange-400 border-orange-500/30';
-    default: return 'bg-muted text-muted-foreground border-border';
+    case 'PT':
+      return 'bg-orange-500/15 text-orange-400 border-orange-500/30';
+    default:
+      return 'bg-muted text-muted-foreground border-border';
   }
 }
 
 function statusColor(status: string): string {
   switch (status) {
-    case WorklistStatus.Final: return 'bg-success/15 text-success border-success/30';
-    case WorklistStatus.Amended: return 'bg-success/15 text-success border-success/30';
-    case WorklistStatus.Preliminary: return 'bg-warning/15 text-warning border-warning/30';
-    case WorklistStatus.InProgress: return 'bg-info/15 text-info border-info/30';
-    case WorklistStatus.Scheduled: return 'bg-muted text-muted-foreground border-border';
-    default: return 'bg-muted text-muted-foreground border-border';
+    case WorklistStatus.Final:
+      return 'bg-success/15 text-success border-success/30';
+    case WorklistStatus.Amended:
+      return 'bg-success/15 text-success border-success/30';
+    case WorklistStatus.Preliminary:
+      return 'bg-warning/15 text-warning border-warning/30';
+    case WorklistStatus.InProgress:
+      return 'bg-info/15 text-info border-info/30';
+    case WorklistStatus.Scheduled:
+      return 'bg-muted text-muted-foreground border-border';
+    default:
+      return 'bg-muted text-muted-foreground border-border';
   }
 }
 
@@ -82,7 +95,10 @@ function TableSkeleton() {
       <div className="p-1">
         <div className="space-y-0">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-4 border-b border-border/50 px-4 py-3 last:border-0">
+            <div
+              key={i}
+              className="flex items-center gap-4 border-b border-border/50 px-4 py-3 last:border-0"
+            >
               <Skeleton className="h-10 w-10 rounded-md" />
               <Skeleton className="h-4 w-32" />
               <Skeleton className="h-4 w-20" />
@@ -318,7 +334,12 @@ export default function StudiesPage() {
         <Card className="border-border/50 bg-card/60 p-12 text-center backdrop-blur-xl">
           <AlertCircle className="mx-auto h-10 w-10 text-muted-foreground/50" />
           <p className="mt-3 text-sm text-muted-foreground">Unable to load studies right now.</p>
-          <Button variant="outline" size="sm" className="mt-4" onClick={() => studiesQuery.refetch()}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4"
+            onClick={() => studiesQuery.refetch()}
+          >
             Retry
           </Button>
         </Card>
@@ -391,10 +412,7 @@ export default function StudiesPage() {
                       {formatDicomDate(study.studyDate)}
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={modalityColor(study.modalitiesInStudy)}
-                      >
+                      <Badge variant="outline" className={modalityColor(study.modalitiesInStudy)}>
                         {study.modalitiesInStudy ?? '-'}
                       </Badge>
                     </TableCell>
@@ -434,7 +452,8 @@ export default function StudiesPage() {
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Page {page}{studies.length > 0 ? ` · ${studies.length} results` : ''}
+          Page {page}
+          {studies.length > 0 ? ` · ${studies.length} results` : ''}
         </p>
         <div className="flex items-center gap-2">
           <Button

@@ -237,7 +237,10 @@ export default function AdminPage() {
         {usersQuery.isLoading ? (
           <Card className="border-border/50 bg-card/60 p-1 backdrop-blur-xl">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-4 border-b border-border/50 px-4 py-3 last:border-0">
+              <div
+                key={i}
+                className="flex items-center gap-4 border-b border-border/50 px-4 py-3 last:border-0"
+              >
                 <Skeleton className="h-4 w-36" />
                 <Skeleton className="h-4 w-28" />
                 <Skeleton className="h-5 w-20 rounded-full" />
@@ -276,7 +279,10 @@ export default function AdminPage() {
               </TableHeader>
               <TableBody>
                 {users.map((row) => (
-                  <TableRow key={row.id} className="group border-border/30 transition-colors hover:bg-muted/50">
+                  <TableRow
+                    key={row.id}
+                    className="group border-border/30 transition-colors hover:bg-muted/50"
+                  >
                     <TableCell className="font-mono text-xs">{row.email}</TableCell>
                     <TableCell className="font-medium">{row.fullName}</TableCell>
                     <TableCell>
@@ -343,7 +349,9 @@ export default function AdminPage() {
           </div>
           <Select
             value={auditAction || '__all__'}
-            onValueChange={(value) => setAuditAction(value === '__all__' ? '' : value as AuditAction)}
+            onValueChange={(value) =>
+              setAuditAction(value === '__all__' ? '' : (value as AuditAction))
+            }
           >
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="All actions" />
@@ -362,7 +370,10 @@ export default function AdminPage() {
         {auditQuery.isLoading ? (
           <Card className="border-border/50 bg-card/60 p-1 backdrop-blur-xl">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-4 border-b border-border/50 px-4 py-3 last:border-0">
+              <div
+                key={i}
+                className="flex items-center gap-4 border-b border-border/50 px-4 py-3 last:border-0"
+              >
                 <Skeleton className="h-4 w-36" />
                 <Skeleton className="h-4 w-20" />
                 <Skeleton className="h-4 w-24" />
@@ -399,20 +410,25 @@ export default function AdminPage() {
               </TableHeader>
               <TableBody>
                 {audits.map((event) => (
-                  <TableRow key={event.id} className="border-border/30 transition-colors hover:bg-muted/50">
+                  <TableRow
+                    key={event.id}
+                    className="border-border/30 transition-colors hover:bg-muted/50"
+                  >
                     <TableCell className="font-mono text-xs text-muted-foreground">
                       {new Date(event.createdAt).toISOString().replace('T', ' ').slice(0, 19)}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
+                      <Badge
+                        variant="outline"
+                        className="bg-muted text-muted-foreground border-border"
+                      >
                         {event.action}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {event.userId ?? '-'}
-                    </TableCell>
+                    <TableCell className="text-muted-foreground">{event.userId ?? '-'}</TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">
-                      {event.resourceType ?? '-'} {event.resourceId ? event.resourceId.slice(0, 8) + '…' : ''}
+                      {event.resourceType ?? '-'}{' '}
+                      {event.resourceId ? event.resourceId.slice(0, 8) + '…' : ''}
                     </TableCell>
                   </TableRow>
                 ))}

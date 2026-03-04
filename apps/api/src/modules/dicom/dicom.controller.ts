@@ -82,7 +82,13 @@ export class DicomController {
     @Req() req: Request,
     @Res() res: Response,
   ): Promise<void> {
-    const result = await this.dicomService.queryInstances(studyUID, seriesUID, user, req, includefield);
+    const result = await this.dicomService.queryInstances(
+      studyUID,
+      seriesUID,
+      user,
+      req,
+      includefield,
+    );
     res.setHeader('content-type', 'application/dicom+json');
     res.status(200).send(result);
   }

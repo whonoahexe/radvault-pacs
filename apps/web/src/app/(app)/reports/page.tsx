@@ -80,7 +80,10 @@ export default function ReportsIndexPage() {
       {reportsQuery.isLoading ? (
         <Card className="border-border/50 bg-card/60 p-1 backdrop-blur-xl">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-4 border-b border-border/50 px-4 py-3 last:border-0">
+            <div
+              key={i}
+              className="flex items-center gap-4 border-b border-border/50 px-4 py-3 last:border-0"
+            >
               <Skeleton className="h-4 w-16" />
               <Skeleton className="h-5 w-20 rounded-full" />
               <Skeleton className="h-4 w-28" />
@@ -96,7 +99,12 @@ export default function ReportsIndexPage() {
         <Card className="border-border/50 bg-card/60 p-12 text-center backdrop-blur-xl">
           <AlertCircle className="mx-auto h-10 w-10 text-muted-foreground/50" />
           <p className="mt-3 text-sm text-muted-foreground">Unable to load reports.</p>
-          <Button variant="outline" size="sm" className="mt-4" onClick={() => reportsQuery.refetch()}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4"
+            onClick={() => reportsQuery.refetch()}
+          >
             Retry
           </Button>
         </Card>
@@ -153,7 +161,11 @@ export default function ReportsIndexPage() {
                     </TableCell>
                     <TableCell>
                       <Link href={`/reports/${report.id}`}>
-                        <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs opacity-0 transition-opacity group-hover:opacity-100">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 gap-1.5 text-xs opacity-0 transition-opacity group-hover:opacity-100"
+                        >
                           <ExternalLink className="h-3.5 w-3.5" />
                           Open
                         </Button>

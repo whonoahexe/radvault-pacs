@@ -42,13 +42,29 @@ function dateOrDash(value: string | null | undefined): string {
 function reportStatusConfig(status: string) {
   switch (status) {
     case 'FINAL':
-      return { icon: CheckCircle2, className: 'bg-success/15 text-success border-success/30', label: 'Final' };
+      return {
+        icon: CheckCircle2,
+        className: 'bg-success/15 text-success border-success/30',
+        label: 'Final',
+      };
     case 'PRELIMINARY':
-      return { icon: PenLine, className: 'bg-info/15 text-info border-info/30', label: 'Preliminary' };
+      return {
+        icon: PenLine,
+        className: 'bg-info/15 text-info border-info/30',
+        label: 'Preliminary',
+      };
     case 'AMENDED':
-      return { icon: PenLine, className: 'bg-warning/15 text-warning border-warning/30', label: 'Amended' };
+      return {
+        icon: PenLine,
+        className: 'bg-warning/15 text-warning border-warning/30',
+        label: 'Amended',
+      };
     default:
-      return { icon: Clock, className: 'bg-muted text-muted-foreground border-border', label: 'Draft' };
+      return {
+        icon: Clock,
+        className: 'bg-muted text-muted-foreground border-border',
+        label: 'Draft',
+      };
   }
 }
 
@@ -182,9 +198,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
           </div>
           <div>
             <h1 className="text-lg font-semibold tracking-tight">Report Editor</h1>
-            <p className="font-mono text-xs text-muted-foreground">
-              {id.slice(0, 8)}…
-            </p>
+            <p className="font-mono text-xs text-muted-foreground">{id.slice(0, 8)}…</p>
           </div>
         </div>
         <Badge variant="outline" className={sc.className}>
@@ -210,7 +224,12 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
         <Card className="border-border/50 bg-card/60 p-12 text-center backdrop-blur-xl">
           <AlertCircle className="mx-auto h-10 w-10 text-muted-foreground/50" />
           <p className="mt-3 text-sm text-muted-foreground">Unable to load report.</p>
-          <Button variant="outline" size="sm" className="mt-4" onClick={() => reportQuery.refetch()}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4"
+            onClick={() => reportQuery.refetch()}
+          >
             Retry
           </Button>
         </Card>
@@ -332,7 +351,12 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                     </Button>
 
                     {report.status === ReportStatus.Final ? (
-                      <Button variant="outline" size="sm" className="gap-1.5" onClick={() => amendMutation.mutate()}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => amendMutation.mutate()}
+                      >
                         <PenLine className="h-3.5 w-3.5" />
                         Amend
                       </Button>

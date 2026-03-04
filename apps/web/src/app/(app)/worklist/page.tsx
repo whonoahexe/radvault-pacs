@@ -152,7 +152,9 @@ export default function WorklistPage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Select
             value={statusFilter || '__all__'}
-            onValueChange={(value) => setStatusFilter(value === '__all__' ? '' : value as WorklistStatus)}
+            onValueChange={(value) =>
+              setStatusFilter(value === '__all__' ? '' : (value as WorklistStatus))
+            }
           >
             <SelectTrigger>
               <SelectValue placeholder="All statuses" />
@@ -169,7 +171,9 @@ export default function WorklistPage() {
 
           <Select
             value={priorityFilter || '__all__'}
-            onValueChange={(value) => setPriorityFilter(value === '__all__' ? '' : value as WorklistPriority)}
+            onValueChange={(value) =>
+              setPriorityFilter(value === '__all__' ? '' : (value as WorklistPriority))
+            }
           >
             <SelectTrigger>
               <SelectValue placeholder="All priorities" />
@@ -190,7 +194,10 @@ export default function WorklistPage() {
       {worklistQuery.isLoading ? (
         <Card className="border-border/50 bg-card/60 p-1 backdrop-blur-xl">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-4 border-b border-border/50 px-4 py-3 last:border-0">
+            <div
+              key={i}
+              className="flex items-center gap-4 border-b border-border/50 px-4 py-3 last:border-0"
+            >
               <Skeleton className="h-4 w-28" />
               <Skeleton className="h-4 w-20" />
               <Skeleton className="h-5 w-12 rounded-full" />
@@ -208,7 +215,12 @@ export default function WorklistPage() {
         <Card className="border-border/50 bg-card/60 p-12 text-center backdrop-blur-xl">
           <AlertCircle className="mx-auto h-10 w-10 text-muted-foreground/50" />
           <p className="mt-3 text-sm text-muted-foreground">Unable to load worklist right now.</p>
-          <Button variant="outline" size="sm" className="mt-4" onClick={() => worklistQuery.refetch()}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4"
+            onClick={() => worklistQuery.refetch()}
+          >
             Retry
           </Button>
         </Card>
@@ -261,7 +273,10 @@ export default function WorklistPage() {
                       {formatDate(item.study.studyDate)}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
+                      <Badge
+                        variant="outline"
+                        className="bg-muted text-muted-foreground border-border"
+                      >
                         {item.study.modalitiesInStudy ?? '-'}
                       </Badge>
                     </TableCell>

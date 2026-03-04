@@ -86,7 +86,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </div>
             <div>
               <h1 className="text-sm font-semibold tracking-tight text-foreground">RadVault</h1>
-              <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">PACS</p>
+              <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                PACS
+              </p>
             </div>
           </div>
 
@@ -115,13 +117,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                       <Icon
                         className={cn(
                           'h-4 w-4 shrink-0 transition-colors',
-                          isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground',
+                          isActive
+                            ? 'text-primary'
+                            : 'text-muted-foreground group-hover:text-foreground',
                         )}
                       />
                       {link.label}
-                      {isActive && (
-                        <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />
-                      )}
+                      {isActive && <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
                     </Link>
                   </TooltipTrigger>
                   <TooltipContent side="right" className="md:hidden">

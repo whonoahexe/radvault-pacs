@@ -73,6 +73,8 @@ services:
       ORTHANC__AWS_S3_STORAGE__VIRTUAL_ADDRESSING: 'false'
     volumes:
       - ./infra/orthanc/orthanc.json:/etc/orthanc/orthanc.json:ro
+    ports:
+      - '8042:8042'
     healthcheck:
       test: ['CMD-SHELL', 'curl -fsS http://localhost:8042/system > /dev/null || exit 1']
       interval: 15s
@@ -138,12 +140,16 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3000
+        NEXT_PUBLIC_ORTHANC_WADO_URL: http://localhost:8042/dicom-web
     depends_on:
       api:
         condition: service_healthy
     environment:
       NODE_ENV: ${NODE_ENV}
       NEXT_PUBLIC_API_URL: http://localhost:3000
+      NEXT_PUBLIC_ORTHANC_WADO_URL: http://localhost:8042/dicom-web
       HOSTNAME: 0.0.0.0
       PORT: '3000'
     ports:

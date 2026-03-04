@@ -1,6 +1,6 @@
 # AI Retrospective
 
-> Reflect on how you used AI-assisted development tools throughout this assessment. Honesty is valued over polish — we want to understand your actual workflow.
+> Reflect on how you used AI-assisted development tools throughout this assessment. Honesty is valued over polish - we want to understand your actual workflow.
 
 **Author:** Noah
 **Date:** 2026-03-03
@@ -9,18 +9,23 @@
 
 ## Tools Used
 
-| Tool                                   | Version                              | How You Used It                                                                                         |
-| -------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| Claude (Sonnet 4.5 via GitHub Copilot) | Sonnet 4.5                           | Primary coding assistant for implementation, refactors, and test generation in iterative prompt loops   |
-| Context7 MCP                           | Latest docs resolution at usage time | Proactively resolved current library APIs before each integration to avoid stale examples and API drift |
+| Tool                           | Version                              | How You Used It                                                                                                                                                |
+| ------------------------------ | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Desktop (Sonnet 4.6)    | Sonnet 4.6                           | Repo connected as a project for persistent context; used to generate scoped planning prompts and cross-check implementation plans from Antigravity             |
+| Antigravity IDE                | Latest                               | Received planning prompts from Claude Desktop and produced detailed, step-by-step implementation plans that were iterated on before handing off to code agents |
+| Codex 5.3 (via GitHub Copilot) | 5.3                                  | Primary code generation agent; fed finalized implementation plans and produced file-level output for most tasks                                                |
+| Claude Code (Opus 4.6)         | Opus 4.6                             | Handled larger, chunkier tasks where a single Codex pass wasn't enough; better at holding multi-file context across a long generation                          |
+| Context7 MCP                   | Latest docs resolution at usage time | Attached to all agents; resolved current library APIs before each integration to avoid stale examples and API drift                                            |
 
 ---
 
 ## Workflow Strategy
 
-I used a two-phase workflow. Phase 1 focused on requirements and architecture alignment before coding. Phase 2 followed an 8-step implementation plan (scaffold, backend core, frontend, worker, seed data, IaC/CI, tests, docs). AI generated most code and tests, but each step had a human review gate before proceeding to the next step.
+I used a two-phase workflow. Phase 1 focused on requirements and architecture alignment before coding. Phase 2 followed an 8-step implementation plan (scaffold, backend core, frontend, worker, seed data, IaC/CI, tests, docs).
 
-Prompting strategy was task-specific and constrained: define the exact module/feature boundary, provide acceptance criteria from the requirements document, request complete file sets for that boundary, then verify behavior with tests or E2E scripts before continuing.
+The actual tool chain per task worked like this: the repo was connected to Claude Desktop (Sonnet 4.6) as a project so it always had full codebase context. I'd ask it to produce a scoped planning prompt for the next task. That prompt went into Antigravity IDE, which returned a detailed implementation plan. I'd paste the plan back into Claude Desktop to cross-check it against the architecture and requirements, run a couple of iteration rounds, then feed the final plan to Codex 5.3 via GitHub Copilot for code generation. If the task was large enough that Codex started losing coherence across files, I handed it off to Opus 4.6 in Claude Code instead. All agents had Context7 MCP available so library docs were resolved at usage time rather than baked into the prompt.
+
+After generation I reviewed the diff manually, made tweaks, pushed, and ran the E2E or integration tests before starting the next task the same way.
 
 ---
 
@@ -42,11 +47,11 @@ NestJS module scaffolding: with a bounded-context prompt per module, AI generate
 > - DTOs with class-validator: WorklistQueryDto (status, priority, assignedTo, page, limit), AssignWorklistDto (assignTo: UUID), TransitionWorklistDto (status: WorklistStatus enum)
 > - Status changes must call AuditService.log with WORKLIST_CLAIM, WORKLIST_UNCLAIM, or WORKLIST_ASSIGN actions
 > - source: 'controller' | 'report' option so the report workflow can drive Preliminary→Final without going through the controller guard
-> - No direct imports from other feature modules — only inject shared PrismaService, AuditService
+> - No direct imports from other feature modules - only inject shared PrismaService, AuditService
 >
 > Return all files for this module as complete TypeScript.
 
-**What was produced:** Full module scaffold — service, controller, 3 DTOs, module definition — in one pass. Used with two edits: added the `source: 'controller' | 'report'` field to `TransitionOptions` and added Prisma `TransactionClient` injection for the report workflow cross-module call.
+**What was produced:** Full module scaffold - service, controller, 3 DTOs, module definition - in one pass. Used with two edits: added the `source: 'controller' | 'report'` field to `TransitionOptions` and added Prisma `TransactionClient` injection for the report workflow cross-module call.
 
 ### Example 2
 
@@ -65,7 +70,7 @@ Cornerstone3D integration also worked well because Context7 was used first to re
 > 5. Load the stack into the viewport and set the initial W/L to default
 > 6. Return `{ toolGroup, viewport, isLoading, error }`
 > 7. Clean up the rendering engine on unmount
->    Do NOT use deprecated `cornerstoneWADOImageLoader` patterns — use `@cornerstonejs/dicom-image-loader` exclusively.
+>    Do NOT use deprecated `cornerstoneWADOImageLoader` patterns - use `@cornerstonejs/dicom-image-loader` exclusively.
 
 **What was produced:** Hook implementation with correct v2.x APIs. Used as-is after adding explicit TypeScript type annotations for `viewport as Types.IStackViewport` to satisfy the tsconfig `strict` setting.
 
@@ -94,20 +99,26 @@ Orthanc authorization callback: initial AI stub returned `granted: true` uncondi
 > Revise `POST /api/internal/orthanc-auth`. Requirements:
 >
 > 1. Extract the Bearer JWT from the `token` field in the Orthanc authorization request body
-> 2. Deny by default — return `{ granted: false }` for any request with an unverifiable, expired, or missing token
+> 2. Deny by default - return `{ granted: false }` for any request with an unverifiable, expired, or missing token
 > 3. Radiologist and Admin roles: grant both READ (GET/HEAD) and WRITE (POST/PUT/DELETE) access
 > 4. Technologist role: grant READ (GET/HEAD) only; deny WRITE
 > 5. ReferringPhysician role: deny all WADO-RS access (they access studies through the NestJS API layer, not direct Orthanc)
-> 6. Never throw HTTP exceptions from this handler — catch all errors and return `{ granted: false }` to prevent Orthanc from treating a 500 as a grant
+> 6. Never throw HTTP exceptions from this handler - catch all errors and return `{ granted: false }` to prevent Orthanc from treating a 500 as a grant
 > 7. The handler must live in InternalModule which is excluded from the global JwtAuthGuard
 
-**Result after fix:** Role-aware handler with explicit deny-by-default, Technologist HTTP method restriction, and a catch-all error wrapper — matching the authorization model described in the architecture document.
+**Result after fix:** Role-aware handler with explicit deny-by-default, Technologist HTTP method restriction, and a catch-all error wrapper - matching the authorization model described in the architecture document.
 
 ### Example 2
 
 RBAC coverage gap: two endpoints (worklist access for ReferringPhysician and reports access for Technologist) were missing `@Roles` guards. This was caught by E2E validation, not by initial generated code.
 
 Operational sequencing also needed manual correction: seed timing initially ran before NestJS readiness (causing Orthanc STOW-RS 403 responses), and worker frame fetches initially failed with Orthanc 403 until `WORKER_JWT` auto-generation was added.
+
+### Example 3
+
+Prisma 7 migration pain: upgrading to Prisma 7 caused CI to blow up repeatedly during integration tests. The root issue was that Prisma 7 changed how the query engine binary is resolved in containerized environments - the old `binaryTargets` config that worked fine in Prisma 5/6 no longer produced a compatible binary for the test runner container. This wasn't obvious from the error output, which just showed generic connection-refused or "engine not found" panics rather than anything pointing at the binary.
+
+Fix required pinning the correct `binaryTargets` for the CI container OS, moving the Prisma generate step earlier in the Dockerfile so it ran at build time rather than entrypoint time, and adding a smoke-test assertion to confirm the engine was present before any integration test suite started. Took longer than expected because all three agents initially suggested fixes that were correct for Prisma 5 but no longer applied in v7.
 
 ---
 
@@ -138,10 +149,11 @@ Step-boundary reviews reduced rework: each phase was validated before moving for
 
 ## Lessons Learned
 
-- Always treat auth/RBAC outputs as draft code and force explicit deny-by-default prompts.
-- Add E2E authorization checks earlier to catch missing guards before feature completion.
-- Keep Context7-first integration policy for third-party libraries; it materially reduced API mismatch churn.
-- Include startup/readiness acceptance criteria in prompts for any multi-container workflow.
+- Auth and RBAC code needs to be treated as a first review target every time. The models are not naturally conservative - they default to permissive unless the prompt explicitly says otherwise. "Deny by default" needs to be in the words of the prompt, not assumed.
+- Don't wait until the end to run authorization E2E checks. Missing guards on two endpoints slipped through because the unit tests didn't exercise the guard layer end-to-end. Running the permission matrix earlier would have caught it before the feature was considered done.
+- Lock down your ORM version before you start and stay on it. Prisma 7 introduced breaking binary resolution changes in containerized builds that cost real time to debug. When the error output doesn't point at the actual cause, you lose a lot of time chasing symptoms. If there's no specific reason to be on the latest major, don't be.
+- Context7 MCP resolving docs at usage time is worth the extra setup. Every time a library integration worked cleanly on the first pass, Context7 was in the loop. The one time Cornerstone3D was started without resolving current docs first, the generated code used deprecated loader patterns that had to be rewritten.
+- Multi-agent orchestration only helps if the handoff is clean. Passing a vague plan from Claude Desktop to Codex produced mediocre output. Passing a tightly scoped plan with explicit file boundaries and acceptance criteria produced something reviewable. The quality of the planning prompt mattered more than which code agent received it.
 
 ---
 
